@@ -21,7 +21,7 @@
 |---|---|
 | `index.html` | アプリ本体（画面・処理すべて） |
 | `firebase-config.js` | Firebase の接続設定 |
-| `firestore.rules` | データベースのアクセスルール（Firebase コンソールに貼り付けて使う） |
+| `firestore.rules` | データベースのアクセスルール（Firebase コンソールに貼り付けて使う）。閲覧専用の人は書き込み不可 |
 | `manifest.webmanifest`, `icons/` | スマホのホーム画面に追加したときの名前とアイコン |
 | `.github/workflows/pages.yml` | GitHub Pages への自動公開 |
 
@@ -33,3 +33,10 @@ Firebase コンソール → Authentication → Users で追加・削除しま�
 ## バックアップ
 
 顧客一覧の「CSV出力」で、月1回程度パソコンに保存してください。
+
+## 閲覧専用の人（社長など）
+
+1. Firebase コンソール → Authentication → Users でアカウントを作る
+2. アプリの「設定・目標」→「閲覧専用でログインする人のメールアドレス」に、その人のメールアドレスを入れて保存
+
+閲覧専用の人は画面上で追加・編集ができず、データベース側（`firestore.rules`）でも書き込みが拒否されます。

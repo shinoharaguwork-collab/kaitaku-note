@@ -1,9 +1,14 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // ログインしている人（Firebase Authentication に登録された篠原・天野）だけが読み書きできる
+    // ログインした人は読める。書き込みは「設定・目標」で閲覧専用に登録された人以外
+    function isViewer() {
+      let path = /databases/$(database)/documents/settings/main;
+      return exists(path) && request.auth.token.email in get(path).data.get('viewers', []);
+    }
     match /{document=**} {
-      allow read, write: if request.auth != null;
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && !isViewer();
     }
   }
 }

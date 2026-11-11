@@ -255,6 +255,7 @@ legend { font-size: 13px; font-weight: 700; padding: 0 6px }
   <section class="settings" id="settings" hidden>
     <h3>営業担当と月間目標</h3>
     <div class="field"><label for="i-reps">営業担当の名前（カンマ区切り）</label><input id="i-reps"></div>
+    <div class="field"><label for="i-viewers">閲覧専用でログインする人のメールアドレス（カンマ区切り）</label><input id="i-viewers" type="text" inputmode="email" placeholder="例：shacho@example.com"><span class="help">ここに入れた人は、ログインしても見るだけになります（追加・編集・削除・記録はできません）。ログインできるようにするには、別途 Firebase の Authentication でアカウントを作ってください。</span></div>
     <div class="table-wrap"><table class="compact"><thead><tr><th>担当</th><th class="r">アプローチ（社）</th><th class="r">アポ獲得（社）</th><th class="r">成約（社）</th></tr></thead><tbody id="tgt-body"></tbody></table></div>
     <div class="actions"><button class="btn primary" id="btn-save-settings" type="button">保存</button><button class="btn" id="btn-close-settings" type="button">閉じる</button></div>
   </section>
@@ -490,8 +491,9 @@ async function write(fn) {
   }
 }
 function gate() {
-  ['btn-new', 'd-save', 'd-del', 'btn-save-settings', 'btn-log', 'btn-import-open'].forEach(id => $(id).disabled = !canWrite);
-  if (!canWrite) { $('banner').hidden = false; $('banner').textContent = '閲覧のみの権限で表示しています。追加・編集はできません。'; }
+  ['btn-new', 'd-save', 'd-del', 'btn-save-settings', 'btn-log', 'btn-import-open', 'btn-settings'].forEach(id => $(id).disabled = !canWrite);
+  $('banner').hidden = canWrite;
+  if (!canWrite) { $('banner').textContent = '閲覧専用のアカウントです。顧客の追加・編集・記録はできません。'; $('settings').hidden = true; $('import').hidden = true; }
 }
 const clean = p => { const { id, ...rest } = p; return JSON.parse(JSON.stringify(rest)); };
 
@@ -1019,6 +1021,7 @@ $('btn-import-close').onclick = () => { $('import').hidden = true; };
 // ---------- settings ----------
 function renderSettings() {
   $('i-reps').value = reps().join(', ');
+  $('i-viewers').value = (settings.viewers || []).join(', ');
   const t = settings.targets || {};
   $('tgt-body').innerHTML = reps().map((r, i) => `<tr><td>${esc(r)}</td>${['approach', 'appo', 'won'].map(k => `<td class="r"><input type="number" min="0" id="tg-${i}-${k}" data-rep="${esc(r)}" data-k="${k}" value="${(t[r] || {})[k] ?? ''}" aria-label="${esc(r)} ${k}"></td>`).join('')}</tr>`).join('');
 }
@@ -1033,7 +1036,11 @@ $('btn-save-settings').onclick = async () => {
   if (!list.length) { toast('営業担当を1人以上入力してください'); return; }
   const targets = { ...(settings.targets || {}) };
   document.querySelectorAll('#tgt-body input').forEach(inp => { const r = inp.dataset.rep; targets[r] ||= {}; const v = parseInt(inp.value, 10); targets[r][inp.dataset.k] = Number.isFinite(v) ? v : 0; });
-  const next = { ...settings, reps: list, targets };
+  const viewers = [...new Set($('i-viewers').value.split(/[,、\s]+/).map(x => x.trim().toLowerCase()).filter(Boolean))];
+  if (currentEmail && viewers.includes(currentEmail.toLowerCase())) { toast('自分のメールアドレスは閲覧専用にできません（編集できなくなるため）'); return; }
+  const bad = viewers.find(x => !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x));
+  if (bad) { toast(`メールアドレスの形が正しくありません：${bad}`); return; }
+  const next = { ...settings, reps: list, targets, viewers };
   if (await write(() => store.saveSettings(next))) { settings = next; toast('設定を保存しました'); $('settings').hidden = true; render(); }
 };
 
@@ -1083,7 +1090,13 @@ function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = fals
 // ---------- boot ----------
 render();
 const onItems = list => { items = list; render(); if (editing && !items.find(p => p.id === editing)) closeDrawer(); };
-const onSettings = s => { settings = { ...settings, ...s }; render(); };
+let currentEmail = '';
+function applyRole() {
+  const viewers = (settings.viewers || []).map(x => String(x).toLowerCase());
+  const nw = !(currentEmail && viewers.includes(currentEmail.toLowerCase()));
+  if (nw !== canWrite) { canWrite = nw; gate(); }
+}
+const onSettings = s => { settings = { ...settings, ...s }; applyRole(); render(); };
 const cfg = window.FIREBASE_CONFIG || {};
 if (!cfg.apiKey || /ここ/.test(cfg.apiKey)) {
   $('login-msg').textContent = 'まだ Firebase の接続設定が入っていません。firebase-config.js に設定を書き込むと使えるようになります。';
@@ -1108,9 +1121,11 @@ if (!cfg.apiKey || /ここ/.test(cfg.apiKey)) {
   onAuthStateChanged(auth, u => {
     if (u) {
       $('login').hidden = true; $('who').textContent = u.email; $('btn-logout').hidden = false;
+      currentEmail = u.email || '';
       if (!store) { store = firestoreAdapter(db); canWrite = true; gate(); store.subscribe(onItems, onSettings); }
     } else {
-      if (store) { store.stop(); store = null; items = []; closeDrawer(); render(); }
+      if (store) { store.stop(); store = null; items = []; settings = { reps: DEFAULT_REPS, targets: {} }; closeDrawer(); render(); }
+      currentEmail = ''; canWrite = true; gate();
       $('who').textContent = ''; $('btn-logout').hidden = true; $('login').hidden = false;
       setStatus('', 'ログインしていません');
     }
