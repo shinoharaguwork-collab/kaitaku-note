@@ -6,11 +6,11 @@
 <meta name="theme-color" content="#1d6b57">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="開拓ノート">
+<meta name="apple-mobile-web-app-title" content="顧客管理">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<title>新規開拓ノート</title>
+<title>顧客管理アプリ</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
@@ -240,7 +240,7 @@ legend { font-size: 13px; font-weight: 700; padding: 0 6px }
 <div class="wrap">
   <header class="top">
     <div>
-      <h1>新規開拓ノート</h1>
+      <h1>顧客管理アプリ</h1>
       <div class="sub" id="today-label"></div>
     </div>
     <div class="actions">
@@ -394,7 +394,7 @@ legend { font-size: 13px; font-weight: 700; padding: 0 6px }
 <div class="toast" id="toast" hidden></div>
 <div class="login" id="login">
   <form id="login-form" novalidate>
-    <h1>新規開拓ノート</h1>
+    <h1>顧客管理アプリ</h1>
     <p id="login-msg">登録されたメールアドレスとパスワードでログインしてください。</p>
     <div class="field"><label for="lg-email">メールアドレス</label><input id="lg-email" type="email" autocomplete="username" required></div>
     <div class="field"><label for="lg-pass">パスワード</label><input id="lg-pass" type="password" autocomplete="current-password" required></div>
@@ -1073,7 +1073,7 @@ $('btn-csv').onclick = async () => {
   const head = ['会社名', '店名', '店舗数', '住所', '電話番号', '先方担当者', '担当営業', 'ステータス', '最終接触', '次回アクション', '予定日', '毎月のアプローチ日', '再アプローチ予定', 'メモ', 'アプローチ回数'];
   const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const rows = filteredList(mine(items)).map(p => [p.company, p.gyotai, p.stores, p.address, p.phone, p.contact, p.owner, ST[p.status]?.name, lastContact(p), p.nextAction, p.nextDue, fmtDays(p.recDays), p.reDue, p.memo, (p.logs || []).length].map(q).join(','));
-  try { await downloads.save({ filename: `新規開拓_${rep || '全員'}_${TODAY}.csv`, data: '\ufeff' + [head.map(q).join(','), ...rows].join('\r\n') }); }
+  try { await downloads.save({ filename: `顧客管理_${rep || '全員'}_${TODAY}.csv`, data: '\ufeff' + [head.map(q).join(','), ...rows].join('\r\n') }); }
   catch (e) { if (e && e.code !== 'dismissed' && e.code !== 'declined') toast('CSVを保存できませんでした'); }
 };
 

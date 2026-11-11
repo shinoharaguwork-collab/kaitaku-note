@@ -1,6 +1,6 @@
 {
-  "name": "新規開拓ノート",
-  "short_name": "開拓ノート",
+  "name": "顧客管理アプリ",
+  "short_name": "顧客管理",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
