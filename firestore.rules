@@ -1,0 +1,9 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ログインしている人（Firebase Authentication に登録された篠原・天野）だけが読み書きできる
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

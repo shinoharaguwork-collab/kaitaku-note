@@ -1,0 +1,1136 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1d6b57">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="開拓ノート">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>新規開拓ノート</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: rep switcher → announcement → KPI vs targets → tabs (今日 / 顧客一覧 / 定期カレンダー / レポート). Drawer for customer detail. */
+:root {
+  --bg: #f3f5f3; --surface: #ffffff; --surface-2: #eaeeeb; --ink: #17211d; --muted: #5a6862; --line: #d8dfdb;
+  --accent: #1d6b57; --accent-ink: #ffffff; --accent-soft: #dcefe8;
+  --warn: #9a5500; --warn-soft: #fbecd6; --bad: #b3261e; --bad-soft: #fbe2df; --info: #2f5ea8; --info-soft: #e1eaf8;
+  --s1: #7d8c86; --s2: #2f5ea8; --s3: #7a52b8; --s4: #b5651d; --s6: #1d6b57; --s7: #8f4a46;
+  --shadow: 0 1px 2px rgba(20,40,30,.06), 0 6px 20px rgba(20,40,30,.06);
+  --f-body: "IBM Plex Sans JP", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+  --f-num: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #111715; --surface: #18201d; --surface-2: #212b27; --ink: #e5ece8; --muted: #9aa8a1; --line: #2e3a35;
+  --accent: #4fbf9c; --accent-ink: #0b1411; --accent-soft: #1d3a30;
+  --warn: #f0b056; --warn-soft: #3a2c15; --bad: #f08a80; --bad-soft: #3d1f1c; --info: #8db4f0; --info-soft: #1d2a40;
+  --s1: #8d9c96; --s2: #8db4f0; --s3: #b49ae8; --s4: #e09a55; --s6: #4fbf9c; --s7: #d58580;
+  --shadow: 0 1px 2px rgba(0,0,0,.3); color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #111715; --surface: #18201d; --surface-2: #212b27; --ink: #e5ece8; --muted: #9aa8a1; --line: #2e3a35;
+  --accent: #4fbf9c; --accent-ink: #0b1411; --accent-soft: #1d3a30;
+  --warn: #f0b056; --warn-soft: #3a2c15; --bad: #f08a80; --bad-soft: #3d1f1c; --info: #8db4f0; --info-soft: #1d2a40;
+  --s1: #8d9c96; --s2: #8db4f0; --s3: #b49ae8; --s4: #e09a55; --s6: #4fbf9c; --s7: #d58580;
+  --shadow: 0 1px 2px rgba(0,0,0,.3); color-scheme: dark }
+
+* { box-sizing: border-box }
+html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px) }
+body { margin: 0 }
+img { max-width: 100% }
+[hidden] { display: none !important }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 14px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 18px 48px }
+.wrap { max-width: 1280px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px }
+.num { font-family: var(--f-num); font-variant-numeric: tabular-nums }
+button, input, select, textarea { font: inherit; color: inherit }
+button { cursor: pointer }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+a { color: var(--info) }
+
+header.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px }
+header.top h1 { margin: 0; font-size: 21px; font-weight: 700; letter-spacing: .02em }
+header.top .sub { color: var(--muted); font-size: 13px }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+.btn { border: 1px solid var(--line); background: var(--surface); padding: 8px 14px; border-radius: 8px; font-weight: 500; text-decoration: none; color: var(--ink); display: inline-flex; align-items: center; gap: 4px }
+.btn:hover { border-color: var(--muted) }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent) }
+.btn.danger { color: var(--bad); border-color: var(--bad) }
+.btn.small { padding: 3px 10px; font-size: 12px }
+.btn:disabled { opacity: .5; cursor: not-allowed }
+.status { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted) }
+.dot.on { background: var(--accent) } .dot.warn { background: var(--warn) }
+
+.reps { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+.reps .lbl { font-size: 12px; color: var(--muted) }
+.seg { display: inline-flex; background: var(--surface-2); border-radius: 10px; padding: 3px; gap: 2px; flex-wrap: wrap }
+.seg button { border: 0; background: transparent; padding: 7px 14px; border-radius: 8px; color: var(--muted); font-weight: 500; display: inline-flex; gap: 6px; align-items: center }
+.seg button[aria-pressed="true"], .seg button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow) }
+.badge { font-family: var(--f-num); font-size: 11px; min-width: 18px; padding: 0 5px; border-radius: 99px; background: var(--bad); color: #fff; text-align: center; line-height: 18px }
+.badge.zero { background: var(--line); color: var(--muted) }
+
+.announce { border-radius: 10px; padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; background: var(--bad-soft); color: var(--bad) }
+.announce.calm { background: var(--accent-soft); color: var(--accent) }
+.announce b { font-size: 15px }
+.announce span { font-size: 13px }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; min-width: 0 }
+.kpi .label { font-size: 12px; color: var(--muted) }
+.kpi .val { font-size: 22px; font-weight: 500 }
+.kpi .val small { font-size: 12px; color: var(--muted); margin-left: 2px; font-family: var(--f-body) }
+.kpi .foot { font-size: 12px; color: var(--muted) }
+.bar { height: 5px; background: var(--surface-2); border-radius: 3px; overflow: hidden; margin-top: 4px }
+.bar > i { display: block; height: 100%; background: var(--accent) }
+.bar.behind > i { background: var(--warn) }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+.filters input, .filters select { padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); min-width: 0; max-width: 100% }
+.filters input[type=search] { width: 220px }
+
+.today-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 14px; align-items: start }
+@media (max-width: 420px) { .today-grid { grid-template-columns: 1fr } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0 }
+.panel h2 { margin: 0 0 10px; font-size: 15px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap }
+.panel h2 .hint { font-size: 12px; color: var(--muted); font-weight: 400 }
+.items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px }
+.item { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; padding: 8px 10px; border-radius: 8px; background: var(--surface-2); min-width: 0 }
+.item .t { min-width: 0; flex: 1 1 160px; cursor: pointer }
+.item .t b { display: block; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.item .t span { font-size: 12px; color: var(--muted); display: block; overflow-wrap: anywhere }
+.quick { display: flex; gap: 4px; flex-wrap: wrap; width: 100% }
+.quick button { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; font-size: 12px; padding: 2px 8px }
+.quick button:hover { border-color: var(--accent); color: var(--accent) }
+.empty { color: var(--muted); font-size: 13px; margin: 0; padding: 6px 0 }
+
+.pill { display: inline-flex; align-items: center; font-size: 11px; font-weight: 500; padding: 1px 8px; border-radius: 99px; white-space: nowrap }
+.pill.over { background: var(--bad-soft); color: var(--bad) }
+.pill.today { background: var(--warn-soft); color: var(--warn) }
+.pill.rec { background: var(--info-soft); color: var(--info) }
+.pill.re { background: var(--surface); color: var(--s7); border: 1px solid var(--s7) }
+.pill.soon { background: var(--surface); color: var(--muted); border: 1px solid var(--line) }
+.pill.stale { background: var(--surface); color: var(--warn); border: 1px dashed var(--warn) }
+.pill.ok { background: var(--accent-soft); color: var(--accent) }
+.pill.sample { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line) }
+.pill.dup { background: var(--warn-soft); color: var(--warn) }
+.st { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; white-space: nowrap }
+.st i { width: 8px; height: 8px; border-radius: 2px; background: var(--sc) }
+
+.mark { border: 0; border-radius: 6px; padding: 2px 8px; font-weight: 700; font-size: 12px; line-height: 1.5; flex: none }
+.mark.todo { background: var(--bad); color: #fff }
+.mark.done { background: var(--line); color: var(--muted) }
+.mark:disabled { cursor: default }
+
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px }
+table { border-collapse: collapse; width: 100%; min-width: 980px }
+table.compact { min-width: 560px }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top }
+th { font-size: 12px; color: var(--muted); font-weight: 500; background: var(--surface-2); white-space: nowrap }
+th[data-k] { cursor: pointer; user-select: none }
+td.r, th.r { text-align: right }
+#tbody tr { cursor: pointer }
+#tbody tr:hover { background: var(--surface-2) }
+td .subtle { font-size: 12px; color: var(--muted) }
+.addr { display: flex; align-items: flex-start; gap: 6px; justify-content: space-between }
+.addr .btn { flex: none; padding: 1px 8px }
+.recmarks { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px }
+.recmarks .mark { font-size: 11px; padding: 0 6px; white-space: nowrap }
+#view-list table { min-width: 1100px }
+.list-meta { font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px }
+
+.import { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px }
+.import h3 { margin: 0; font-size: 15px }
+.import p { margin: 0; font-size: 13px; color: var(--muted) }
+.import .preview { max-height: 260px; overflow: auto; border: 1px solid var(--line); border-radius: 8px }
+
+.cal-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px }
+.cal-head h2 { margin: 0; font-size: 17px }
+.legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--muted); align-items: center }
+.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--line); gap: 1px }
+.cal-grid .dow { background: var(--surface-2); font-size: 12px; text-align: center; padding: 6px 0; color: var(--muted) }
+.cal-grid .dow.sun { color: var(--bad) } .cal-grid .dow.sat { color: var(--info) }
+.cell { background: var(--surface); min-height: 108px; padding: 6px; display: flex; flex-direction: column; gap: 4px; min-width: 0 }
+.cell.out { background: var(--surface-2) }
+.cell.out .dn { opacity: .4 }
+.cell.today { box-shadow: inset 0 0 0 2px var(--accent) }
+.dn { font-size: 12px; font-family: var(--f-num) }
+.chip { display: flex; align-items: center; gap: 4px; font-size: 12px; padding: 2px 4px; border-radius: 6px; background: var(--surface-2); min-width: 0 }
+.chip .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; flex: 1 }
+.chip.done .nm { text-decoration: line-through; color: var(--muted) }
+.chip.plan { background: var(--warn-soft) }
+.chip.re { background: var(--bad-soft) }
+.chip .mark { padding: 0 6px; font-size: 11px }
+.chip .who { font-size: 10px; color: var(--muted); flex: none }
+.cal-agenda { display: none; flex-direction: column; gap: 8px }
+.ag-day { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px }
+.ag-day.today { border-color: var(--accent) }
+.ag-day h3 { margin: 0; font-size: 13px }
+@media (max-width: 760px) { .cal-grid { display: none } .cal-agenda { display: flex } }
+
+.report { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 14px; align-items: start }
+@media (max-width: 480px) { .report { grid-template-columns: 1fr } }
+.report .panel { padding: 0; overflow: hidden }
+.report .panel h2 { padding: 12px 16px 0 }
+.report .table-wrap { border: 0; border-radius: 0 }
+.rate { display: inline-flex; align-items: center; gap: 6px; justify-content: flex-end }
+.rate i { display: inline-block; height: 6px; border-radius: 3px; background: var(--accent); min-width: 1px }
+.rep-note { grid-column: 1/-1; margin: 0; font-size: 13px; color: var(--muted); max-width: 75ch }
+table.funnel { min-width: 760px }
+table.funnel td { vertical-align: middle }
+table.funnel .conv { font-size: 11px; color: var(--muted); font-family: var(--f-num) }
+table.funnel td.neck { background: var(--warn-soft) }
+table.funnel td.neck .conv { color: var(--warn); font-weight: 700 }
+table.funnel tr.total td { font-weight: 700; border-top: 2px solid var(--line) }
+
+.settings { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px }
+.settings h3 { margin: 0; font-size: 15px }
+.settings input { padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); width: 100%; min-width: 0 }
+.settings table { min-width: 420px }
+.settings td input { width: 90px }
+
+.scrim { position: fixed; inset: 0; background: rgba(10,20,15,.35); z-index: 20 }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(580px, 100%); background: var(--surface); z-index: 21; display: flex; flex-direction: column;
+  padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); padding-right: env(safe-area-inset-right, 0px); box-shadow: -8px 0 30px rgba(0,0,0,.15) }
+.drawer-h { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--line); gap: 8px; flex-wrap: wrap }
+.drawer-h h2 { margin: 0; font-size: 16px; min-width: 0; overflow-wrap: anywhere }
+.drawer-b { flex: 1; overflow-y: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px }
+.drawer-f { display: flex; justify-content: space-between; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--line); flex-wrap: wrap }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px }
+@media (max-width: 480px) { .grid2, .grid3 { grid-template-columns: 1fr } }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0 }
+.field label, .flabel { font-size: 12px; color: var(--muted) }
+.field input, .field select, .field textarea { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); width: 100% }
+.field textarea { min-height: 64px; resize: vertical }
+.field .help { font-size: 11px; color: var(--muted) }
+.inline { display: flex; gap: 6px; align-items: center; min-width: 0; flex-wrap: wrap }
+.inline input { flex: 1; min-width: 140px }
+.req { color: var(--bad) }
+fieldset { border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin: 0; display: flex; flex-direction: column; gap: 10px; min-width: 0 }
+legend { font-size: 13px; font-weight: 700; padding: 0 6px }
+.logs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px }
+.logs li { border-left: 3px solid var(--line); padding: 2px 0 2px 10px; font-size: 13px; display: flex; justify-content: space-between; gap: 8px }
+.logs li.appo { border-left-color: var(--s3) }
+.logs li .meta { display: block; font-size: 11px; color: var(--muted) }
+.logs li button { border: 0; background: none; color: var(--muted); font-size: 12px; padding: 0 4px; align-self: flex-start }
+.err { color: var(--bad); font-size: 12px; margin: 0 }
+.warnbox { background: var(--warn-soft); color: var(--warn); border-radius: 8px; padding: 8px 10px; font-size: 13px }
+#re-field[hidden] { display: none }
+
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 8px 16px; border-radius: 8px; z-index: 30; font-size: 13px; max-width: calc(100% - 32px) }
+.banner { background: var(--warn-soft); color: var(--warn); padding: 8px 12px; border-radius: 8px; font-size: 13px }
+@media (prefers-reduced-motion: no-preference) { .drawer { animation: slide .18s ease-out } @keyframes slide { from { transform: translateX(24px); opacity: .6 } } }
+.who { font-size: 12px; color: var(--muted) }
+.login { position: fixed; inset: 0; z-index: 40; background: var(--bg); display: flex; align-items: center; justify-content: center;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
+.login form { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 24px; width: min(380px, 100%); display: flex; flex-direction: column; gap: 14px; box-shadow: var(--shadow) }
+.login h1 { margin: 0; font-size: 20px }
+.login p { margin: 0; font-size: 13px; color: var(--muted) }
+.login .err { color: var(--bad) }
+.login .linklike { border: 0; background: none; color: var(--info); padding: 0; font-size: 13px; align-self: flex-start }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>新規開拓ノート</h1>
+      <div class="sub" id="today-label"></div>
+    </div>
+    <div class="actions">
+      <span class="status" id="status"><span class="dot"></span><span>接続中…</span></span>
+      <span class="who" id="who"></span>
+      <button class="btn" id="btn-logout" type="button" hidden>ログアウト</button>
+      <button class="btn" id="btn-settings" type="button">設定・目標</button>
+      <button class="btn primary" id="btn-new" type="button">＋ 新規顧客</button>
+    </div>
+  </header>
+
+  <section class="settings" id="settings" hidden>
+    <h3>営業担当と月間目標</h3>
+    <div class="field"><label for="i-reps">営業担当の名前（カンマ区切り）</label><input id="i-reps"></div>
+    <div class="table-wrap"><table class="compact"><thead><tr><th>担当</th><th class="r">アプローチ（社）</th><th class="r">アポ獲得（社）</th><th class="r">成約（社）</th></tr></thead><tbody id="tgt-body"></tbody></table></div>
+    <div class="actions"><button class="btn primary" id="btn-save-settings" type="button">保存</button><button class="btn" id="btn-close-settings" type="button">閉じる</button></div>
+  </section>
+
+  <div class="reps"><span class="lbl">営業担当</span><div class="seg" id="rep-seg" role="group" aria-label="営業担当で絞り込み"></div></div>
+
+  <div class="banner" id="banner" hidden></div>
+  <div class="announce" id="announce" role="status"></div>
+  <section class="kpis" id="kpis" aria-label="今月のサマリー"></section>
+
+  <div class="toolbar">
+    <div class="seg" role="tablist">
+      <button role="tab" id="tab-today" aria-selected="true" data-view="today">今日やること</button>
+      <button role="tab" id="tab-list" aria-selected="false" data-view="list">顧客一覧</button>
+      <button role="tab" id="tab-cal" aria-selected="false" data-view="cal">定期カレンダー</button>
+      <button role="tab" id="tab-report" aria-selected="false" data-view="report">レポート</button>
+    </div>
+  </div>
+
+  <section id="view-today" class="today-grid">
+    <div class="panel"><h2>今日やること <span class="badge" id="c-now">0</span><span class="hint">ボタンで結果をそのまま記録できます</span></h2><ul class="items" id="l-now"></ul></div>
+    <div class="panel"><h2>今後7日の予定 <span class="badge zero" id="c-soon">0</span></h2><ul class="items" id="l-soon"></ul></div>
+    <div class="panel"><h2>フォロー漏れ注意 <span class="badge zero" id="c-stale">0</span><span class="hint">次回予定なし・30日以上接触なし</span></h2><ul class="items" id="l-stale"></ul></div>
+  </section>
+
+  <section id="view-list" hidden>
+    <div class="toolbar" style="margin-bottom:10px">
+      <div class="filters">
+        <select id="f-owner" aria-label="担当"></select>
+        <input type="search" id="f-q" placeholder="会社名・店名・住所・電話で検索" aria-label="検索">
+        <select id="f-status" aria-label="ステータス"></select>
+        <select id="f-gyotai" aria-label="店名" hidden></select>
+        <select id="f-pref" aria-label="都道府県"></select>
+        <select id="f-city" aria-label="市区町村"></select>
+        <select id="f-sort" aria-label="並べ替え">
+          <option value="" hidden>並べ替え：見出しで指定中</option>
+          <option value="owner:1">並べ替え：担当者順</option>
+          <option value="company:1">並べ替え：会社名順</option>
+          <option value="gyotai:1">並べ替え：店名順</option>
+          <option value="stores:-1">並べ替え：店舗数が多い順</option>
+          <option value="stores:1">並べ替え：店舗数が少ない順</option>
+          <option value="address:1">並べ替え：住所順（エリアごと）</option>
+          <option value="status:1">並べ替え：ステータス順</option>
+          <option value="rec:1">並べ替え：定期アプローチ日順</option>
+          <option value="nextDue:1">並べ替え：次回予定が近い順</option>
+          <option value="last:1">並べ替え：最終接触が古い順</option>
+          <option value="last:-1">並べ替え：最終接触が新しい順</option>
+          <option value="created:-1">並べ替え：登録が新しい順</option>
+        </select>
+      </div>
+      <div class="actions">
+        <button class="btn small" id="btn-import-open" type="button">一括取り込み</button>
+        <button class="btn small" id="btn-csv" type="button" hidden>CSV出力</button>
+      </div>
+    </div>
+    <section class="import" id="import" hidden>
+      <h3>見込み客リストの一括取り込み</h3>
+      <p>Excel（.xlsx）またはCSVを選んでください。1行目の見出しから「会社名・店名・店舗数・住所・電話・担当・メモ」を自動で読み取ります。すでに登録済みの会社（電話番号か会社名が一致）は取り込みません。</p>
+      <div class="inline"><input type="file" id="imp-file" accept=".xlsx,.xls,.csv,.txt"><label for="imp-owner" class="flabel">担当が空欄の行は</label><select id="imp-owner"></select></div>
+      <div id="imp-result"></div>
+      <div class="actions"><button class="btn primary" id="btn-import" type="button" disabled>取り込む</button><button class="btn" id="btn-import-close" type="button">閉じる</button></div>
+    </section>
+    <div class="list-meta" id="list-meta"></div>
+    <div class="table-wrap"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
+  </section>
+
+  <section id="view-cal" hidden>
+    <div class="cal-head">
+      <div class="actions"><button class="btn small" id="cal-prev" aria-label="前の月">‹ 前月</button><h2 id="cal-title"></h2><button class="btn small" id="cal-next" aria-label="次の月">翌月 ›</button><button class="btn small" id="cal-now">今月</button></div>
+    </div>
+    <div class="legend" style="margin-bottom:10px"><span><button class="mark todo" disabled>未</button> 未実施（押すと済）</span><span><button class="mark done" disabled>済</button> 実施済み（押すと戻す）</span><span class="pill today">予定</span> 次回アクション <span class="pill over">再</span> 見送り客の再アプローチ</div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <div class="cal-agenda" id="cal-agenda"></div>
+  </section>
+
+  <section id="view-report" hidden>
+    <div class="cal-head">
+      <div class="actions"><button class="btn small" id="rep-prev">‹ 前月</button><h2 id="rep-title"></h2><button class="btn small" id="rep-next">翌月 ›</button><button class="btn small" id="rep-now">今月</button></div>
+    </div>
+    <div class="report" id="report"></div>
+  </section>
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" hidden role="dialog" aria-modal="true" aria-labelledby="d-title">
+  <div class="drawer-h"><h2 id="d-title">顧客</h2>
+    <div class="actions"><button class="btn small" id="d-close" type="button">閉じる</button></div></div>
+  <form class="drawer-b" id="d-form" novalidate>
+    <div class="warnbox" id="dup-warn" hidden></div>
+    <fieldset><legend>基本情報</legend>
+      <div class="field"><label for="i-company">会社名 <span class="req">*</span></label><input id="i-company" required></div>
+      <div class="grid3">
+        <div class="field"><label for="i-gyotai">店名</label><input id="i-gyotai" placeholder="例：まるいち 新宿西口店"><datalist id="gyotai-list"></datalist></div>
+        <div class="field"><label for="i-stores">店舗数</label><input id="i-stores" type="number" min="0" inputmode="numeric"></div>
+        <div class="field"><label for="i-owner">担当営業</label><select id="i-owner"></select></div>
+      </div>
+      <div class="field"><label for="i-address">住所</label><div class="inline"><input id="i-address" placeholder="例：東京都渋谷区…"><a id="map-link" class="btn small" target="_blank" rel="noopener" hidden>地図</a></div></div>
+      <div class="grid2">
+        <div class="field"><label for="i-phone">電話番号</label><div class="inline"><input id="i-phone" type="tel" placeholder="03-1234-5678"><button type="button" class="btn small" id="btn-copy">コピー</button></div></div>
+        <div class="field"><label for="i-contact">先方担当者</label><input id="i-contact" placeholder="例：店長 山田様"></div>
+      </div>
+      <div class="field"><label for="i-memo">メモ</label><textarea id="i-memo" placeholder="決裁者、キーマン、競合、予算感など"></textarea></div>
+    </fieldset>
+
+    <fieldset><legend>ステータス・次回アクション</legend>
+      <div class="grid2">
+        <div class="field"><label for="i-status">ステータス</label><select id="i-status"></select></div>
+        <div class="field" id="re-field" hidden><label for="i-re">再アプローチ予定日</label><input id="i-re" type="date">
+          <div class="inline"><button type="button" class="btn small" data-re="3">3か月後</button><button type="button" class="btn small" data-re="6">半年後</button><button type="button" class="btn small" data-re="12">1年後</button></div></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label for="i-next">次回アクション</label><input id="i-next" placeholder="例：店長に再電話"></div>
+        <div class="field"><label for="i-due">予定日</label><input id="i-due" type="date"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label for="i-rec">毎月のアプローチ日</label><input id="i-rec" placeholder="例：5, 20 / 末"><span class="help">毎月この日にカレンダーとお知らせに出ます。「末」は月末日。</span></div>
+        <div class="field"><label for="i-recnote">定期アプローチの内容</label><input id="i-recnote" placeholder="例：新メニュー案内の電話"></div>
+      </div>
+    </fieldset>
+
+    <fieldset><legend>アプローチ記録</legend>
+      <div class="grid3">
+        <div class="field"><label for="l-date">日付</label><input id="l-date" type="date"></div>
+        <div class="field"><label for="l-how">手段</label><select id="l-how"></select></div>
+        <div class="field"><label for="l-result">結果</label><select id="l-result"></select></div>
+      </div>
+      <div class="inline"><input id="l-text" placeholder="内容（例：店長不在、明日15時に折り返し）" aria-label="アプローチ内容"><button type="button" class="btn small primary" id="btn-log">記録を追加</button></div>
+      <ul class="logs" id="logs"></ul>
+    </fieldset>
+    <p class="err" id="d-err" hidden></p>
+  </form>
+  <div class="drawer-f">
+    <div><button class="btn danger" id="d-del" type="button">削除</button></div>
+    <div class="actions"><button class="btn" id="d-cancel" type="button">キャンセル</button><button class="btn primary" id="d-save" type="button">保存</button></div>
+  </div>
+</aside>
+<div class="toast" id="toast" hidden></div>
+<div class="login" id="login">
+  <form id="login-form" novalidate>
+    <h1>新規開拓ノート</h1>
+    <p id="login-msg">登録されたメールアドレスとパスワードでログインしてください。</p>
+    <div class="field"><label for="lg-email">メールアドレス</label><input id="lg-email" type="email" autocomplete="username" required></div>
+    <div class="field"><label for="lg-pass">パスワード</label><input id="lg-pass" type="password" autocomplete="current-password" required></div>
+    <p class="err" id="lg-err" hidden></p>
+    <button class="btn primary" id="lg-btn" type="submit">ログイン</button>
+    <button class="linklike" id="lg-reset" type="button">パスワードを忘れた場合</button>
+  </form>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="firebase-config.js"></script>
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { initializeFirestore, getFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, onSnapshot, setDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+(() => {
+const STATUSES = [
+  { id: 'new', name: '未接触', c: '--s1' }, { id: 'approach', name: 'アプローチ中', c: '--s2' },
+  { id: 'appo', name: 'アポ獲得', c: '--s3' }, { id: 'nego', name: '商談中', c: '--s4' },
+  { id: 'won', name: '成約', c: '--s6' }, { id: 'drop', name: '見送り', c: '--s7' },
+];
+const ST = Object.fromEntries(STATUSES.map(s => [s.id, s]));
+const OPEN = new Set(['new', 'approach', 'appo', 'nego']);
+const HOW = ['電話', '訪問', 'メール', 'DM・FAX', 'その他'];
+const RESULT = ['不在・折り返し待ち', '受付で断り', '購買担当接触', '購買担当に断られた', '資料送付', 'アポ獲得', '商談実施', '成約', 'その他'];
+const REFUSED = new Set(['受付で断り', '購買担当に断られた', '断り']);
+const TALKED = new Set(['購買担当接触', '担当者と話せた']);
+const DEFAULT_REPS = ['篠原', '天野'];
+const resLabel = r => r === '担当者と話せた' ? '購買担当接触' : r;
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const parse = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const addDays = (s, k) => { const d = parse(s); d.setDate(d.getDate() + k); return ymd(d); };
+const addMonthsDate = (s, k) => { const d = parse(s); const day = d.getDate(); d.setDate(1); d.setMonth(d.getMonth() + k); d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate())); return ymd(d); };
+const diffDays = (a, b) => Math.round((parse(a) - parse(b)) / 86400000);
+const TODAY = ymd(new Date());
+const MONTH = TODAY.slice(0, 7);
+const addMonths = (m, k) => { const [y, mo] = m.split('-').map(Number); const d = new Date(y, mo - 1 + k, 1); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`; };
+const WK = '日月火水木金土';
+const md = s => s ? `${Number(s.slice(5, 7))}/${Number(s.slice(8, 10))}（${WK[parse(s).getDay()]}）` : '—';
+const nextBizDay = s => { let d = addDays(s, 1); while (parse(d).getDay() === 0) d = addDays(d, 1); return d; };
+$('today-label').textContent = `${TODAY.slice(0, 4)}年${Number(TODAY.slice(5, 7))}月${Number(TODAY.slice(8))}日（${WK[new Date().getDay()]}）`;
+
+// ---------- state ----------
+let items = [];
+let settings = { reps: DEFAULT_REPS, targets: {} };
+let rep = '', view = 'today', calMonth = MONTH, repMonth = MONTH, sortKey = 'owner', sortDir = 1;
+let editing = null, draftLogs = [], canWrite = true, store = null;
+const downloads = {
+  async save({ filename, data }) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([data], { type: 'text/csv;charset=utf-8' }));
+    a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  },
+};
+let dupConfirmed = false, importRows = [];
+try { rep = localStorage.getItem('kn_rep') ?? ''; view = localStorage.getItem('kn_view') || 'today'; const s = (localStorage.getItem('kn_sort') || '').split(':'); if (s[0]) { sortKey = s[0]; sortDir = +s[1] || 1; } } catch (e) {}
+
+// ---------- storage (Firebase Firestore) ----------
+function firestoreAdapter(db) {
+  const col = collection(db, 'prospects');
+  const unsubs = [];
+  return {
+    mode: 'db',
+    subscribe(onItems, onSettings) {
+      const timer = setTimeout(() => setStatus('warn', 'データに接続できません（表示が古い可能性）'), 10000);
+      unsubs.push(onSnapshot(col, { includeMetadataChanges: true }, snap => {
+        if (!snap.metadata.fromCache) { clearTimeout(timer); setStatus('on', '保存・同期中'); }
+        onItems(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      }, e => { clearTimeout(timer); setStatus('warn', '同期が停止しました（' + (e.code || '不明') + '）'); }));
+      unsubs.push(onSnapshot(doc(db, 'settings', 'main'), s => { if (s.exists()) onSettings(s.data()); }, () => {}));
+    },
+    stop() { unsubs.splice(0).forEach(u => u()); },
+    save: (id, data) => setDoc(doc(col, id), data),
+    remove: id => deleteDoc(doc(col, id)),
+    saveSettings: s => setDoc(doc(db, 'settings', 'main'), s),
+    newId: () => doc(col).id,
+  };
+}
+function setStatus(kind, text) { const el = $('status'); el.querySelector('.dot').className = 'dot ' + (kind || ''); el.lastElementChild.textContent = text; }
+async function write(fn) {
+  if (!store) { toast('ログインしてください'); return false; }
+  if (!canWrite) { toast('閲覧のみの権限のため保存できません'); return false; }
+  try { await fn(); return true; }
+  catch (e) {
+    if (e && (e.code === 'permission-denied' || e.code === 'invalid_argument')) { canWrite = false; gate(); toast('保存できませんでした。編集権限がありません'); }
+    else if (e && (e.code === 'quota_exceeded' || e.code === 'resource-exhausted')) toast('無料枠の上限に達しました。明日になると再び保存できます');
+    else toast('保存に失敗しました。もう一度お試しください');
+    return false;
+  }
+}
+function gate() {
+  ['btn-new', 'd-save', 'd-del', 'btn-save-settings', 'btn-log', 'btn-import-open'].forEach(id => $(id).disabled = !canWrite);
+  if (!canWrite) { $('banner').hidden = false; $('banner').textContent = '閲覧のみの権限で表示しています。追加・編集はできません。'; }
+}
+const clean = p => { const { id, ...rest } = p; return JSON.parse(JSON.stringify(rest)); };
+
+// ---------- helpers ----------
+const reps = () => (settings.reps && settings.reps.length ? settings.reps : DEFAULT_REPS);
+const mine = list => rep ? list.filter(p => (p.owner || '') === rep) : list;
+const lastContact = p => (p.logs || []).reduce((m, l) => l.d > m ? l.d : m, '');
+function occurrences(p, ym) {
+  const days = p.recDays || []; if (!days.length) return [];
+  const [y, m] = ym.split('-').map(Number); const last = new Date(y, m, 0).getDate();
+  return [...new Set(days.map(d => Math.min(d, last)))].sort((a, b) => a - b).map(d => `${ym}-${pad(d)}`);
+}
+const isDone = (p, date) => !!(p.done && p.done[date]);
+const recActive = p => p.status !== 'drop';
+const normPhone = s => String(s || '').normalize('NFKC').replace(/[^\d]/g, '');
+const normName = s => String(s || '').normalize('NFKC').toLowerCase().replace(/株式会社|有限会社|合同会社|\(株\)|\(有\)|㈱|㈲|\s|・|　/g, '');
+function findDup(company, phone, excludeId) {
+  const np = normPhone(phone), nn = normName(company);
+  return items.find(p => p.id !== excludeId && ((np.length >= 9 && normPhone(p.phone) === np) || (nn && normName(p.company) === nn)));
+}
+function area(addr) {
+  const a = String(addr || '').normalize('NFKC').replace(/^〒?\s*\d{3}-?\d{4}\s*/, '').trim();
+  const m = a.match(/^(東京都|北海道|(?:京都|大阪)府|[^\s\d都道府県]{2,3}県)/);
+  const pref = m ? m[1] : '';
+  const rest = a.slice(pref.length);
+  const c = rest.match(/^(.+?郡.{1,4}?[町村]|[^\d]+?市[^\d市]{1,4}?区|.+?[市区町村])/);
+  return { pref, city: c ? c[1] : '' };
+}
+// アプローチ記録を付けた日から7日以内に過ぎた定期日を「済」にする
+function autoDone(data, log) {
+  data.done ||= {};
+  for (const ym of [log.d.slice(0, 7), addMonths(log.d.slice(0, 7), -1)])
+    for (const date of occurrences(data, ym)) if (date <= log.d && diffDays(log.d, date) <= 7 && !data.done[date]) data.done[date] = new Date().toISOString();
+}
+function applyResultToStatus(status, result) {
+  if (status === 'new') status = 'approach';
+  if (result === 'アポ獲得' && (status === 'new' || status === 'approach')) status = 'appo';
+  if (result === '商談実施' && ['new', 'approach', 'appo'].includes(status)) status = 'nego';
+  if (result === '成約') status = 'won';
+  return status;
+}
+
+// ---------- buckets ----------
+function buckets(list) {
+  const now = [], soon = [], stale = [];
+  const end7 = addDays(TODAY, 7);
+  for (const p of list) {
+    if (OPEN.has(p.status) && p.nextDue) {
+      if (p.nextDue < TODAY) now.push({ p, k: 'over', label: `期限切れ ${md(p.nextDue)}`, text: p.nextAction, sort: '0' + p.nextDue, plan: 1 });
+      else if (p.nextDue === TODAY) now.push({ p, k: 'today', label: '本日', text: p.nextAction, sort: '1' + p.nextDue, plan: 1 });
+      else if (p.nextDue <= end7) soon.push({ p, k: 'soon', label: md(p.nextDue), text: p.nextAction, sort: p.nextDue });
+    }
+    if (p.status === 'drop' && p.reDue) {
+      if (p.reDue <= TODAY) now.push({ p, k: 're', label: '再アプローチ時期', text: `見送り後の再アプローチ（予定 ${md(p.reDue)}）`, sort: '2' + p.reDue, re: 1 });
+      else if (p.reDue <= end7) soon.push({ p, k: 're', label: `再 ${md(p.reDue)}`, text: '見送り後の再アプローチ', sort: p.reDue });
+    }
+    if (recActive(p)) {
+      for (const ym of [MONTH, addMonths(MONTH, 1)]) for (const date of occurrences(p, ym)) {
+        if (isDone(p, date)) continue;
+        if (ym === MONTH && date < TODAY) now.push({ p, k: 'over', rec: date, label: `定期 ${md(date)} 未実施`, text: p.recNote || '定期アプローチ', sort: '0' + date });
+        else if (date === TODAY) now.push({ p, k: 'rec', rec: date, label: '定期 本日', text: p.recNote || '定期アプローチ', sort: '1' + date });
+        else if (date > TODAY && date <= end7) soon.push({ p, k: 'rec', rec: date, label: `定期 ${md(date)}`, text: p.recNote || '定期アプローチ', sort: date });
+      }
+    }
+    if (OPEN.has(p.status)) {
+      const lc = lastContact(p);
+      if (lc && diffDays(TODAY, lc) >= 30) stale.push({ p, k: 'stale', label: `${diffDays(TODAY, lc)}日接触なし`, text: `最終接触 ${md(lc)}`, sort: lc });
+      else if (!p.nextDue) stale.push({ p, k: 'stale', label: '次回予定なし', text: lc ? `最終接触 ${md(lc)}` : 'まだアプローチしていません', sort: 'z' + (lc || '') });
+    }
+  }
+  const by = (a, b) => a.sort.localeCompare(b.sort);
+  return { now: now.sort(by), soon: soon.sort(by), stale: stale.sort(by) };
+}
+
+// ---------- monthly metrics ----------
+// 段階表（ファネル）：その月に各段階まで進んだ会社数。先の段階に進んだ会社は手前の段階にも数える
+const LEVEL = { '購買担当接触': 2, '担当者と話せた': 2, '購買担当に断られた': 2, 'アポ獲得': 3, '商談実施': 4, '成約': 5 };
+const FUNNEL = [['approach', 'アプローチ'], ['talked', '購買担当接触'], ['appo', 'アポ獲得'], ['meet', '商談'], ['won', '成約']];
+function metrics(list, ym) {
+  const n = [0, 0, 0, 0, 0, 0]; let acts = 0;
+  for (const p of list) {
+    let lv = 0;
+    for (const l of p.logs || []) if ((l.d || '').startsWith(ym)) { acts++; lv = Math.max(lv, LEVEL[l.result] || 1); }
+    if (p.status === 'won' && (p.wonAt || '').startsWith(ym)) lv = 5;
+    for (let k = 1; k <= lv; k++) n[k]++;
+  }
+  return { acts, approach: n[1], talked: n[2], appo: n[3], meet: n[4], won: n[5] };
+}
+const targetFor = r => {
+  const t = settings.targets || {};
+  if (r) return t[r] || {};
+  return reps().reduce((a, x) => { const v = t[x] || {}; for (const k of ['approach', 'appo', 'won']) a[k] = (a[k] || 0) + (+v[k] || 0); return a; }, {});
+};
+
+// ---------- render ----------
+function render() {
+  renderReps(); renderSelects();
+  const list = mine(items);
+  const b = buckets(list);
+  renderAnnounce(b); renderKpis(list);
+  for (const v of ['today', 'list', 'cal', 'report']) { $('view-' + v).hidden = v !== view; $('tab-' + v).setAttribute('aria-selected', v === view); }
+  if (view === 'today') renderToday(b); else if (view === 'list') renderTable(list); else if (view === 'cal') renderCal(list); else renderReport();
+  $('btn-csv').hidden = !downloads || !items.length;
+}
+
+function renderReps() {
+  const opts = [['', '全員', buckets(items).now.length], ...reps().map(r => [r, r, buckets(items.filter(p => p.owner === r)).now.length])];
+  if (rep && !reps().includes(rep)) rep = '';
+  $('rep-seg').innerHTML = opts.map(([v, n, c]) => `<button type="button" data-rep="${esc(v)}" aria-pressed="${v === rep}">${esc(n)}<span class="badge ${c ? '' : 'zero'}">${c}</span></button>`).join('');
+}
+
+function renderAnnounce(b) {
+  const who = rep ? `${rep}さん` : '全員';
+  const over = b.now.filter(x => x.k === 'over').length;
+  const el = $('announce');
+  if (!items.length) { el.className = 'announce calm'; el.innerHTML = '<b>まだ顧客が登録されていません。</b><span>「＋ 新規顧客」から登録するか、顧客一覧の「一括取り込み」でリストを読み込んでください。</span>'; return; }
+  if (b.now.length) {
+    el.className = 'announce';
+    el.innerHTML = `<b>${esc(who)}：今日やることが ${b.now.length} 件あります</b><span>${over ? `うち期限切れ・未実施 ${over} 件` : ''}${b.stale.length ? `${over ? '／' : ''}フォロー漏れ注意 ${b.stale.length} 件` : ''}</span>`;
+  } else {
+    el.className = 'announce calm';
+    el.innerHTML = `<b>${esc(who)}：今日やることはすべて完了しています</b><span>今後7日の予定 ${b.soon.length} 件</span>`;
+  }
+}
+
+function renderKpis(list) {
+  const m = metrics(list, MONTH);
+  const t = targetFor(rep);
+  const [y, mo] = MONTH.split('-').map(Number);
+  const dim = new Date(y, mo, 0).getDate(), pace = Number(TODAY.slice(8)) / dim;
+  const tile = (label, val, unit, tg) => {
+    const pct = tg ? Math.min(100, val / tg * 100) : 0;
+    const behind = tg && val / tg < pace - 0.1;
+    return `<div class="kpi"><span class="label">${label}</span><span class="val num">${val}<small>${tg ? `/ ${tg} ${unit}` : unit}</small></span>
+      ${tg ? `<div class="bar ${behind ? 'behind' : ''}"><i style="width:${pct}%"></i></div><span class="foot">達成率 ${Math.round(val / tg * 100)}%${behind ? '・ペース遅れ' : ''}</span>` : '<span class="foot">目標は「設定・目標」で登録できます</span>'}</div>`;
+  };
+  const occ = list.filter(recActive).flatMap(p => occurrences(p, MONTH).map(d => isDone(p, d)));
+  const doneN = occ.filter(Boolean).length;
+  $('kpis').innerHTML =
+    tile(`${mo}月のアプローチ`, m.approach, '社', +t.approach || 0) +
+    tile(`${mo}月のアポ獲得`, m.appo, '社', +t.appo || 0) +
+    tile(`${mo}月の成約`, m.won, '社', +t.won || 0) +
+    `<div class="kpi"><span class="label">${mo}月の定期アプローチ</span><span class="val num">${doneN}<small>/ ${occ.length}</small></span><div class="bar"><i style="width:${occ.length ? doneN / occ.length * 100 : 0}%"></i></div><span class="foot">済にした件数</span></div>` +
+    `<div class="kpi"><span class="label">進行中の見込み客</span><span class="val num">${list.filter(p => OPEN.has(p.status)).length}<small>社</small></span><span class="foot">今月の購買担当接触 ${m.talked} 社</span></div>`;
+}
+
+function itemHtml(x, withQuick) {
+  const p = x.p;
+  const markBtn = x.rec ? `<button class="mark todo" data-done="${esc(p.id)}" data-date="${x.rec}" title="押すと済になります">未</button>` : '';
+  const q = withQuick && canWrite ? `<div class="quick" aria-label="結果をすばやく記録">
+    <button type="button" data-q="不在・折り返し待ち" data-id-q="${esc(p.id)}" data-rec="${x.rec || ''}">不在</button>
+    <button type="button" data-q="購買担当接触" data-id-q="${esc(p.id)}" data-rec="${x.rec || ''}">購買担当接触</button>
+    <button type="button" data-q="アポ獲得" data-id-q="${esc(p.id)}" data-rec="${x.rec || ''}">アポ獲得</button>
+    <button type="button" data-q="受付で断り" data-id-q="${esc(p.id)}" data-rec="${x.rec || ''}">受付で断り</button>
+    <button type="button" data-q="購買担当に断られた" data-id-q="${esc(p.id)}" data-rec="${x.rec || ''}">購買担当に断られた</button>
+    <button type="button" data-open-log="${esc(p.id)}">詳しく記録…</button></div>` : '';
+  return `<li class="item">${markBtn}<span class="pill ${x.k}">${esc(x.label)}</span>
+    <span class="t" data-id="${esc(p.id)}" tabindex="0"><b>${esc(p.company)}${p.gyotai ? `（${esc(p.gyotai)}）` : ''}</b>
+    <span>${esc(x.text || '—')}${!rep ? ` ・ ${esc(p.owner || '担当未設定')}` : ''}${p.phone ? ` ・ ${esc(p.phone)}` : ''}</span></span>${q}</li>`;
+}
+function renderToday(b) {
+  const fill = (k, arr, emptyMsg, quick) => {
+    $('l-' + k).innerHTML = arr.map(x => itemHtml(x, quick)).join('') || `<li class="empty">${emptyMsg}</li>`;
+    $('c-' + k).textContent = arr.length; $('c-' + k).className = 'badge' + (arr.length && k === 'now' ? '' : ' zero');
+  };
+  fill('now', b.now, items.length ? 'ありません。お疲れさまです。' : '顧客を登録するとここに表示されます。', true);
+  fill('soon', b.soon, '今後7日の予定はありません。', false);
+  fill('stale', b.stale, 'フォロー漏れはありません。', true);
+}
+
+async function quickLog(id, result, recDate) {
+  const p = items.find(x => x.id === id); if (!p) return;
+  const data = clean(p);
+  const log = { d: TODAY, how: '電話', result, text: '', by: p.owner || rep || '' };
+  data.logs = [...(data.logs || []), log].slice(-300);
+  const prevStatus = data.status;
+  if (data.status === 'drop') { data.status = 'approach'; data.reDue = ''; }
+  data.status = applyResultToStatus(data.status, result);
+  if (REFUSED.has(result) && OPEN.has(data.status)) { data.status = 'drop'; data.reDue = addMonthsDate(TODAY, 6); }
+  if (data.status === 'won' && prevStatus !== 'won') data.wonAt = TODAY;
+  if (recDate) { data.done = { ...(data.done || {}) }; data.done[recDate] = new Date().toISOString(); }
+  autoDone(data, log);
+  let msg = `${p.company}：「${result}」を記録しました`;
+  if (result === '不在・折り返し待ち' && OPEN.has(data.status)) {
+    if (!recDate) { data.nextDue = nextBizDay(TODAY); data.nextAction ||= '再電話'; msg += `。次回予定を${md(data.nextDue)}にしました`; }
+  } else if (!recDate && data.nextDue && data.nextDue <= TODAY) {
+    data.nextDue = ''; data.nextAction = ''; if (OPEN.has(data.status)) msg += '。次回予定を設定してください';
+  }
+  if (data.status === 'drop' && prevStatus !== 'drop') msg += `。見送りにして、${md(data.reDue)}に再アプローチのお知らせを出します`;
+  data.updatedAt = new Date().toISOString();
+  if (await write(() => store.save(id, data))) toast(msg);
+}
+
+function renderSelects() {
+  const fill = (el, opts, first) => { const cur = el.value; el.innerHTML = (first ? `<option value="">${first}</option>` : '') + opts.map(([v, n]) => `<option value="${esc(v)}">${esc(n)}</option>`).join(''); if ([...el.options].some(o => o.value === cur)) el.value = cur; };
+  fill($('f-status'), STATUSES.map(s => [s.id, s.name]), 'ステータス：すべて');
+  const gy = [...new Set(items.map(p => p.gyotai).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ja'));
+  fill($('f-gyotai'), gy.map(g => [g, g]), '業態：すべて');
+  $('gyotai-list').innerHTML = gy.map(g => `<option value="${esc(g)}">`).join('');
+  const prefs = [...new Set(items.map(p => area(p.address).pref).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ja'));
+  fill($('f-pref'), prefs.map(x => [x, x]), 'エリア：すべて');
+  const pf = $('f-pref').value;
+  const cities = [...new Set(items.filter(p => !pf || area(p.address).pref === pf).map(p => area(p.address).city).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ja'));
+  fill($('f-city'), cities.map(x => [x, x]), '市区町村：すべて');
+  fill($('imp-owner'), reps().map(r => [r, `${r}の担当にする`]), '担当なしにする');
+  fill($('f-owner'), reps().map(r => [r, `担当：${r}`]), '担当：全員'); $('f-owner').value = rep;
+}
+
+const COLS = [
+  { k: 'owner', n: '担当' }, { k: 'company', n: '会社名' }, { k: 'gyotai', n: '店名' }, { k: 'stores', n: '店舗数', r: 1 }, { k: 'address', n: '住所' },
+  { k: 'phone', n: '電話番号' }, { k: 'status', n: 'ステータス' }, { k: 'last', n: '最終接触' }, { k: 'nextDue', n: '次回予定' }, { k: 'rec', n: '定期アプローチ' },
+];
+function filteredList(list) {
+  const q = $('f-q').value.trim().toLowerCase(), fs = $('f-status').value, fg = $('f-gyotai').value, fp = $('f-pref').value, fc = $('f-city').value;
+  return list.filter(p => {
+    if (fs && p.status !== fs) return false;
+    if (fg && p.gyotai !== fg) return false;
+    if (fp || fc) { const a = area(p.address); if (fp && a.pref !== fp) return false; if (fc && a.city !== fc) return false; }
+    return !q || `${p.company} ${p.gyotai || ''} ${p.address || ''} ${p.phone || ''} ${p.memo || ''} ${p.contact || ''}`.toLowerCase().includes(q);
+  });
+}
+function renderTable(list) {
+  const rows = filteredList(list);
+  const si = Object.fromEntries(STATUSES.map((s, i) => [s.id, i]));
+  const val = (p, k) => k === 'stores' ? (+p.stores || 0) : k === 'status' ? si[p.status] ?? 9 : k === 'last' ? (lastContact(p) || '\uffff') : (p[k] || '\uffff');
+  const v2 = (p, k) => k === 'created' ? (p.createdAt || '') : k === 'rec' ? ((p.recDays && p.recDays[0]) || 99) : val(p, k);
+  const recCell = p => {
+    const days = p.recDays || [];
+    if (!days.length) return '<span class="subtle">—</span>';
+    const label = '毎月 ' + days.map(d => d >= 31 ? '末日' : d + '日').join('・');
+    if (!recActive(p)) return `<span class="subtle">${label}（見送り中）</span>`;
+    const marks = occurrences(p, MONTH).map(d => { const dn = isDone(p, d); return `<button class="mark ${dn ? 'done' : 'todo'}" data-done="${esc(p.id)}" data-date="${d}" title="${dn ? '押すと未に戻す' : '押すと済'}">${Number(d.slice(8))}日 ${dn ? '済' : '未'}</button>`; }).join('');
+    return `<span class="subtle">${label}</span><div class="recmarks">${marks}</div>`;
+  };
+  rows.sort((a, b) => { const x = v2(a, sortKey), y = v2(b, sortKey); return (x > y ? 1 : x < y ? -1 : 0) * sortDir || String(a.company).localeCompare(String(b.company), 'ja'); });
+  const sv = `${sortKey}:${sortDir}`; $('f-sort').value = [...$('f-sort').options].some(o => o.value === sv) ? sv : '';
+  $('list-meta').innerHTML = `<span>${rows.length} 社を表示</span>`;
+  $('thead').innerHTML = '<tr>' + COLS.map(c => `<th class="${c.r ? 'r' : ''}" data-k="${c.k}">${c.n}${sortKey === c.k ? (sortDir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('') + '</tr>';
+  $('tbody').innerHTML = rows.map(p => { const st = ST[p.status] || ST.new; const lc = lastContact(p); const over = OPEN.has(p.status) && p.nextDue && p.nextDue < TODAY; return `<tr data-id="${esc(p.id)}" tabindex="0">
+    <td>${esc(p.owner || '—')}</td><td>${esc(p.company)} ${p.sample ? '<span class="pill sample">サンプル</span>' : ''}</td><td>${esc(p.gyotai || '')}</td>
+    <td class="r num">${p.stores ?? ''}</td><td>${p.address ? `<div class="addr"><span class="subtle">${esc(p.address)}</span><a class="btn small" href="https://www.google.com/maps/search/?api=1&amp;query=${encodeURIComponent(p.address)}" target="_blank" rel="noopener" aria-label="${esc(p.company)}の住所を地図で開く">地図</a></div>` : ''}</td><td class="num">${esc(p.phone || '')}</td>
+    <td><span class="st" style="--sc:var(${st.c})"><i></i>${st.name}</span>${p.status === 'drop' && p.reDue ? `<br><span class="subtle">再 ${md(p.reDue)}</span>` : ''}</td>
+    <td class="num">${lc ? md(lc) : '—'}</td>
+    <td>${p.nextDue ? `<span class="pill ${over ? 'over' : p.nextDue === TODAY ? 'today' : 'soon'}">${md(p.nextDue)}</span> ` : ''}<span class="subtle">${esc(p.nextAction || '')}</span></td><td>${recCell(p)}</td></tr>`; }).join('')
+    || `<tr><td colspan="${COLS.length}" style="color:var(--muted);cursor:default">${items.length ? '該当する顧客はありません。' : 'まだ顧客が登録されていません。'}</td></tr>`;
+}
+
+// ---------- calendar ----------
+function calEntries(list, date) {
+  const out = [];
+  for (const p of list) {
+    if (recActive(p) && occurrences(p, date.slice(0, 7)).includes(date)) out.push({ p, type: 'rec', done: isDone(p, date) });
+    if (p.nextDue === date && OPEN.has(p.status)) out.push({ p, type: 'plan' });
+    if (p.status === 'drop' && p.reDue === date) out.push({ p, type: 're' });
+  }
+  const o = { rec: 0, plan: 1, re: 2 };
+  return out.sort((a, b) => o[a.type] - o[b.type] || a.p.company.localeCompare(b.p.company, 'ja'));
+}
+function chipHtml(e, date) {
+  const p = e.p, who = !rep && p.owner ? `<span class="who">${esc(p.owner)}</span>` : '';
+  if (e.type === 'plan') return `<div class="chip plan" title="${esc(p.nextAction || '')}"><span class="nm" data-id="${esc(p.id)}">予定：${esc(p.company)}</span>${who}</div>`;
+  if (e.type === 're') return `<div class="chip re"><span class="nm" data-id="${esc(p.id)}">再：${esc(p.company)}</span>${who}</div>`;
+  return `<div class="chip ${e.done ? 'done' : ''}" title="${esc(p.recNote || '定期アプローチ')}"><button class="mark ${e.done ? 'done' : 'todo'}" data-done="${esc(p.id)}" data-date="${date}" aria-label="${esc(p.company)} ${e.done ? '済（押すと未に戻す）' : '未（押すと済）'}">${e.done ? '済' : '未'}</button><span class="nm" data-id="${esc(p.id)}">${esc(p.company)}</span>${who}</div>`;
+}
+function renderCal(list) {
+  const [y, m] = calMonth.split('-').map(Number);
+  $('cal-title').textContent = `${y}年${m}月`;
+  const first = new Date(y, m - 1, 1), last = new Date(y, m, 0).getDate();
+  const start = new Date(first); start.setDate(1 - first.getDay());
+  let html = [...WK].map((w, i) => `<div class="dow ${i === 0 ? 'sun' : i === 6 ? 'sat' : ''}">${w}</div>`).join('');
+  const weeks = Math.ceil((first.getDay() + last) / 7);
+  for (let i = 0; i < weeks * 7; i++) {
+    const d = new Date(start); d.setDate(start.getDate() + i); const ds = ymd(d); const inMonth = d.getMonth() === m - 1;
+    const es = inMonth ? calEntries(list, ds) : [];
+    html += `<div class="cell ${inMonth ? '' : 'out'} ${ds === TODAY ? 'today' : ''}"><span class="dn">${d.getDate()}</span>${es.map(e => chipHtml(e, ds)).join('')}</div>`;
+  }
+  $('cal-grid').innerHTML = html;
+  let ag = '';
+  for (let dd = 1; dd <= last; dd++) {
+    const ds = `${calMonth}-${pad(dd)}`; const es = calEntries(list, ds);
+    if (es.length) ag += `<div class="ag-day ${ds === TODAY ? 'today' : ''}"><h3>${md(ds)}${ds === TODAY ? ' ・ 今日' : ''}</h3>${es.map(e => chipHtml(e, ds)).join('')}</div>`;
+  }
+  $('cal-agenda').innerHTML = ag || '<p class="empty">この月の定期アプローチ・予定はありません。顧客の「毎月のアプローチ日」を設定すると表示されます。</p>';
+}
+async function toggleDone(id, date) {
+  const p = items.find(x => x.id === id); if (!p) return;
+  const data = clean(p); data.done = { ...(data.done || {}) };
+  const nowDone = !data.done[date];
+  if (nowDone) data.done[date] = new Date().toISOString(); else delete data.done[date];
+  data.updatedAt = new Date().toISOString();
+  const before = p.done; p.done = data.done; render();
+  if (await write(() => store.save(id, data))) toast(`${p.company}：${md(date)} を${nowDone ? '済' : '未'}にしました`);
+  else { p.done = before; render(); }
+}
+
+// ---------- report ----------
+function funnelCells(f, t) {
+  const pct = (a, b) => Math.round(a / b * 100);
+  let neck = -1, low = Infinity;
+  for (let i = 1; i < FUNNEL.length; i++) { const prev = f[FUNNEL[i - 1][0]]; if (prev) { const r = f[FUNNEL[i][0]] / prev; if (r < low) { low = r; neck = i; } } }
+  const tg = { approach: t.approach, appo: t.appo, won: t.won };
+  const cells = FUNNEL.map(([k], i) => {
+    const prev = i ? f[FUNNEL[i - 1][0]] : 0;
+    const conv = i ? (prev ? `${pct(f[k], prev)}%` : '—') : '';
+    return `<td class="r ${i === neck ? 'neck' : ''}"><span class="num">${f[k]}</span><small class="subtle">社${tg[k] ? ` / ${tg[k]}` : ''}</small>${i ? `<div class="conv">${i === neck ? '▼ ' : ''}${conv}</div>` : ''}</td>`;
+  }).join('');
+  const neckTxt = neck > 0 ? `${FUNNEL[neck - 1][1]} → ${FUNNEL[neck][1]}<div class="conv">${pct(f[FUNNEL[neck][0]], f[FUNNEL[neck - 1][0]])}% しか進んでいません</div>` : '—';
+  return { cells, neckTxt };
+}
+function renderReport() {
+  const [y, m] = repMonth.split('-').map(Number);
+  $('rep-title').textContent = `${y}年${m}月`;
+  const head = `<th class="r">アプローチ</th><th class="r">購買担当接触</th><th class="r">アポ獲得</th><th class="r">商談</th><th class="r">成約</th><th>止まっている段階</th>`;
+  // 営業別
+  const repRows = [...reps(), ''].map(r => {
+    const f = metrics(r ? items.filter(p => p.owner === r) : items, repMonth);
+    const t = targetFor(r);
+    const { cells, neckTxt } = funnelCells(f, t);
+    return `<tr${r ? '' : ' class="total"'}><td>${r ? esc(r) : '合計'}</td>${cells}<td>${neckTxt}</td></tr>`;
+  }).join('');
+  // 都道府県別
+  const g = {};
+  for (const p of mine(items)) (g[area(p.address).pref || '（住所未入力）'] ||= []).push(p);
+  const arRows = Object.entries(g).map(([k, list]) => ({ k, n: list.length, f: metrics(list, repMonth) }))
+    .sort((a, b) => b.f.approach - a.f.approach || b.n - a.n)
+    .map(({ k, n, f }) => { const { cells, neckTxt } = funnelCells(f, {}); return `<tr><td>${esc(k)}</td><td class="r num">${n}</td>${cells}<td>${neckTxt}</td></tr>`; }).join('');
+  const who = rep ? `（${esc(rep)}）` : '（全員）';
+  $('report').innerHTML = `
+    <p class="rep-note">どの段階も、この月にその段階まで進んだ<b>会社の数</b>です（「アプローチ」は電話・メール等で一度でもアプローチした会社）。先の段階まで進んだ会社は手前の段階にも数えるので、右に行くほど同じか少なくなります。下の％は1つ手前の段階から進んだ割合で、いちばん低い段階に色を付けています。</p>
+    <div class="panel" style="grid-column:1/-1"><h2>営業別 <span class="hint">数字 / 目標</span></h2><div class="table-wrap"><table class="compact funnel"><thead><tr><th>担当</th>${head}</tr></thead><tbody>${repRows}</tbody></table></div></div>
+    <div class="panel" style="grid-column:1/-1"><h2>都道府県別 <span class="hint">${who}</span></h2><div class="table-wrap"><table class="compact funnel"><thead><tr><th>都道府県</th><th class="r">登録社数</th>${head}</tr></thead><tbody>${arRows || `<tr><td colspan="8" style="color:var(--muted)">顧客がまだ登録されていません。</td></tr>`}</tbody></table></div></div>`;
+}
+
+// ---------- drawer ----------
+const opt = (arr, cur) => arr.map(v => `<option${v === cur ? ' selected' : ''}>${esc(v)}</option>`).join('');
+$('i-status').innerHTML = STATUSES.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+$('l-how').innerHTML = opt(HOW); $('l-result').innerHTML = opt(RESULT);
+const parseDays = s => [...new Set(String(s || '').normalize('NFKC').split(/[,、\s・]+/).map(t => /末/.test(t) ? 31 : parseInt(t.replace(/[^\d]/g, ''), 10)).filter(n => n >= 1 && n <= 31))].sort((a, b) => a - b);
+const fmtDays = a => (a || []).map(d => d === 31 ? '末' : d).join(', ');
+function updateMap() { const a = $('i-address').value.trim(); const l = $('map-link'); l.hidden = !a; if (a) l.href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(a); }
+function updateRe() { const drop = $('i-status').value === 'drop'; $('re-field').hidden = !drop; if (drop && !$('i-re').value) $('i-re').value = addMonthsDate(TODAY, 6); }
+function checkDup() {
+  const d = findDup($('i-company').value, $('i-phone').value, editing);
+  const w = $('dup-warn');
+  dupConfirmed = false;
+  if (d) { w.hidden = false; w.innerHTML = `重複の可能性：<b>${esc(d.company)}</b>（${esc(d.owner || '担当未設定')}・${esc(d.phone || '電話なし')}）がすでに登録されています。 <button type="button" class="btn small" data-id="${esc(d.id)}" id="dup-open">そちらを開く</button>`; }
+  else w.hidden = true;
+  return d;
+}
+$('i-address').addEventListener('input', updateMap);
+$('i-status').addEventListener('change', updateRe);
+$('i-company').addEventListener('blur', checkDup);
+$('i-phone').addEventListener('blur', checkDup);
+document.querySelectorAll('[data-re]').forEach(b => b.onclick = () => { $('i-re').value = addMonthsDate(TODAY, +b.dataset.re); });
+
+function openDrawer(id, focusLog) {
+  const p = id ? items.find(x => x.id === id) : null;
+  if (id && !p) return;
+  editing = id;
+  $('d-title').textContent = p ? p.company : '新規顧客';
+  $('i-owner').innerHTML = `<option value="">未設定</option>` + opt(reps(), p ? p.owner : rep);
+  if (p && p.owner && !reps().includes(p.owner)) $('i-owner').insertAdjacentHTML('beforeend', `<option selected>${esc(p.owner)}</option>`);
+  $('i-company').value = p?.company || ''; $('i-gyotai').value = p?.gyotai || ''; $('i-stores').value = p?.stores ?? '';
+  $('i-address').value = p?.address || ''; $('i-phone').value = p?.phone || ''; $('i-contact').value = p?.contact || '';
+  $('i-status').value = p?.status || 'new'; $('i-re').value = p?.reDue || '';
+  $('i-memo').value = p?.memo || ''; $('i-next').value = p?.nextAction || ''; $('i-due').value = p?.nextDue || '';
+  $('i-rec').value = fmtDays(p?.recDays); $('i-recnote').value = p?.recNote || '';
+  $('l-date').value = TODAY; $('l-how').value = '電話'; $('l-result').value = '購買担当接触'; $('l-text').value = '';
+  draftLogs = [...(p?.logs || [])]; renderLogs(); updateMap(); updateRe();
+  $('d-del').hidden = !p; $('d-del').textContent = '削除'; $('d-del').dataset.armed = '';
+  $('d-err').hidden = true; $('dup-warn').hidden = true; dupConfirmed = false;
+  $('scrim').hidden = false; $('drawer').hidden = false;
+  setTimeout(() => (focusLog ? $('l-text') : $('i-company')).focus(), 30);
+}
+function closeDrawer() { $('scrim').hidden = true; $('drawer').hidden = true; editing = null; }
+function renderLogs() {
+  const sorted = draftLogs.map((l, i) => ({ l, i })).sort((a, b) => (b.l.d || '').localeCompare(a.l.d || '') || b.i - a.i);
+  $('logs').innerHTML = sorted.map(({ l, i }) => `<li class="${l.result === 'アポ獲得' ? 'appo' : ''}"><span><span class="meta">${md(l.d)} ・ ${esc(l.how)} ・ ${esc(resLabel(l.result))}${l.by ? ' ・ ' + esc(l.by) : ''}</span>${esc(l.text || '')}</span><button type="button" data-rmlog="${i}" aria-label="この記録を削除">×</button></li>`).join('')
+    || '<li style="border:0;padding:0;color:var(--muted)">まだ記録がありません</li>';
+}
+function addLog() {
+  const d = $('l-date').value || TODAY;
+  const r = $('l-result').value;
+  draftLogs.push({ d, how: $('l-how').value, result: r, text: $('l-text').value.trim(), by: $('i-owner').value || rep || '' });
+  $('l-text').value = ''; renderLogs();
+  const s = $('i-status');
+  if (s.value === 'drop' && !REFUSED.has(r)) s.value = 'approach';
+  s.value = applyResultToStatus(s.value, r);
+  if (REFUSED.has(r) && OPEN.has(s.value)) s.value = 'drop';
+  updateRe();
+  toast('記録を追加しました。「保存」で確定します');
+}
+$('btn-log').onclick = addLog;
+$('l-text').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); addLog(); } });
+$('logs').addEventListener('click', e => { const b = e.target.closest('[data-rmlog]'); if (b) { draftLogs.splice(+b.dataset.rmlog, 1); renderLogs(); } });
+$('btn-copy').onclick = () => {
+  const v = $('i-phone').value; if (!v) return;
+  try { navigator.clipboard.writeText(v).then(() => toast('電話番号をコピーしました'), () => { $('i-phone').select(); toast('選択しました。コピーしてください'); }); } catch (e) { $('i-phone').select(); }
+};
+
+$('d-save').onclick = async () => {
+  const company = $('i-company').value.trim();
+  if (!company) { $('d-err').textContent = '会社名を入力してください。'; $('d-err').hidden = false; $('i-company').focus(); return; }
+  if (!dupConfirmed && checkDup()) {
+    dupConfirmed = true; $('d-err').textContent = '同じ会社が登録済みの可能性があります。このまま保存する場合は、もう一度「保存」を押してください。'; $('d-err').hidden = false; return;
+  }
+  if ($('l-text').value.trim()) addLog();
+  const prev = editing ? items.find(x => x.id === editing) : null;
+  const recDays = parseDays($('i-rec').value);
+  const status = $('i-status').value;
+  const data = {
+    company, gyotai: $('i-gyotai').value.trim(), stores: Number.isFinite(parseInt($('i-stores').value, 10)) ? parseInt($('i-stores').value, 10) : null,
+    address: $('i-address').value.trim(), phone: $('i-phone').value.trim(), contact: $('i-contact').value.trim(), owner: $('i-owner').value,
+    status, reDue: status === 'drop' ? $('i-re').value : '', memo: $('i-memo').value,
+    nextAction: $('i-next').value.trim(), nextDue: $('i-due').value,
+    recDays, recNote: $('i-recnote').value.trim(), done: { ...(prev?.done || {}) },
+    logs: draftLogs.slice(-300),
+    wonAt: status === 'won' ? (prev?.status === 'won' && prev.wonAt ? prev.wonAt : TODAY) : '',
+    createdAt: prev?.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString(),
+  };
+  for (const l of draftLogs.slice((prev?.logs || []).length)) autoDone(data, l);
+  if (prev?.sample) data.sample = true;
+  const id = editing || store.newId();
+  $('d-save').disabled = true;
+  const ok = await write(() => store.save(id, data));
+  $('d-save').disabled = !canWrite;
+  if (ok) { closeDrawer(); toast(prev ? '保存しました' : '顧客を追加しました'); }
+};
+$('d-del').onclick = async () => {
+  const b = $('d-del');
+  if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'もう一度押すと削除'; return; }
+  const id = editing;
+  if (await write(() => store.remove(id))) { closeDrawer(); toast('削除しました'); }
+};
+$('d-close').onclick = closeDrawer; $('d-cancel').onclick = closeDrawer; $('scrim').onclick = closeDrawer;
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('drawer').hidden) closeDrawer(); });
+$('btn-new').onclick = () => openDrawer(null);
+
+// ---------- 一括取り込み ----------
+const ALIAS = {
+  company: ['会社名', '社名', '法人名', '企業名', '顧客名', '名称'],
+  gyotai: ['店名', '店舗名', '屋号', 'ブランド名'],
+  stores: ['店舗数', '店数'],
+  address: ['住所', '所在地', '住所1'],
+  phone: ['電話', '電話番号', 'tel', 'TEL', 'Tel', '代表電話'],
+  owner: ['担当', '担当者', '担当営業', '営業担当'],
+  memo: ['メモ', '備考', 'コメント', '特記事項'],
+  contact: ['先方担当者', '担当者名', '氏名', '窓口'],
+};
+function readTable(file) {
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onerror = () => rej(new Error('read'));
+    fr.onload = () => {
+      try {
+        if (window.XLSX) {
+          const isCsv = /\.(csv|txt)$/i.test(file.name);
+          let wb;
+          if (isCsv) {
+            const buf = new Uint8Array(fr.result);
+            let text = new TextDecoder('utf-8').decode(buf);
+            if (text.includes('\ufffd')) { try { text = new TextDecoder('shift_jis').decode(buf); } catch (_) {} }
+            wb = XLSX.read(text.replace(/^\ufeff/, ''), { type: 'string' });
+          } else wb = XLSX.read(fr.result, { type: 'array' });
+          res(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '', raw: false }));
+        } else rej(new Error('nolib'));
+      } catch (e) { rej(e); }
+    };
+    fr.readAsArrayBuffer(file);
+  });
+}
+$('imp-file').addEventListener('change', async e => {
+  const f = e.target.files && e.target.files[0]; importRows = []; $('btn-import').disabled = true;
+  if (!f) { $('imp-result').innerHTML = ''; return; }
+  $('imp-result').innerHTML = '<p>読み込み中…</p>';
+  let rows;
+  try { rows = await readTable(f); } catch (err) { $('imp-result').innerHTML = '<p class="err">ファイルを読み込めませんでした。Excel（.xlsx）か CSV で保存し直してお試しください。</p>'; return; }
+  rows = rows.filter(r => r.some(c => String(c).trim()));
+  if (rows.length < 2) { $('imp-result').innerHTML = '<p class="err">見出し行とデータ行が見つかりません。</p>'; return; }
+  const head = rows[0].map(h => String(h).trim());
+  const map = {};
+  for (const [k, al] of Object.entries(ALIAS)) { const i = head.findIndex(h => al.some(a => h.toLowerCase() === a.toLowerCase())); if (i >= 0) map[k] = i; }
+  if (map.company === undefined) { for (const [k, al] of Object.entries(ALIAS)) if (map[k] === undefined) { const i = head.findIndex(h => al.some(a => h.includes(a))); if (i >= 0 && !Object.values(map).includes(i)) map[k] = i; } }
+  if (map.company === undefined) { $('imp-result').innerHTML = `<p class="err">「会社名」（または 社名・法人名）の列が見つかりません。1行目の見出しを確認してください。見つかった見出し：${esc(head.join('、'))}</p>`; return; }
+  const seenP = new Set(), seenN = new Set();
+  importRows = rows.slice(1).map(r => {
+    const g = k => map[k] === undefined ? '' : String(r[map[k]] ?? '').trim();
+    const o = { company: g('company'), gyotai: g('gyotai'), stores: parseInt(g('stores').normalize('NFKC'), 10), address: g('address'), phone: g('phone'), owner: g('owner'), memo: g('memo'), contact: g('contact') };
+    if (!Number.isFinite(o.stores)) o.stores = null;
+    const np = normPhone(o.phone), nn = normName(o.company);
+    o.dup = !o.company ? 'empty' : findDup(o.company, o.phone, null) ? 'exists' : ((np.length >= 9 && seenP.has(np)) || seenN.has(nn)) ? 'infile' : '';
+    if (np) seenP.add(np); if (nn) seenN.add(nn);
+    return o;
+  });
+  const ok = importRows.filter(o => !o.dup);
+  const found = Object.keys(map).map(k => ({ company: '会社名', gyotai: '店名', stores: '店舗数', address: '住所', phone: '電話', owner: '担当', memo: 'メモ', contact: '先方担当者' }[k])).join('・');
+  const dupLabel = { exists: '登録済み', infile: 'ファイル内で重複', empty: '会社名なし' };
+  $('imp-result').innerHTML = `<p>読み取った列：${esc(found)} ／ 取り込み対象 <b>${ok.length}</b> 件・スキップ ${importRows.length - ok.length} 件</p>
+    <div class="preview"><table class="compact"><thead><tr><th></th><th>会社名</th><th>店名</th><th>店舗数</th><th>住所</th><th>電話</th><th>担当</th></tr></thead><tbody>
+    ${importRows.slice(0, 200).map(o => `<tr><td>${o.dup ? `<span class="pill dup">${dupLabel[o.dup]}</span>` : '<span class="pill ok">取込</span>'}</td><td>${esc(o.company)}</td><td>${esc(o.gyotai)}</td><td class="num">${o.stores ?? ''}</td><td>${esc(o.address)}</td><td class="num">${esc(o.phone)}</td><td>${esc(o.owner)}</td></tr>`).join('')}
+    </tbody></table></div>${importRows.length > 200 ? '<p>（プレビューは先頭200行まで）</p>' : ''}`;
+  $('btn-import').disabled = !ok.length || !canWrite;
+});
+$('btn-import').onclick = async () => {
+  const ok = importRows.filter(o => !o.dup);
+  if (!ok.length) return;
+  const btn = $('btn-import'); btn.disabled = true;
+  const defOwner = $('imp-owner').value;
+  let n = 0;
+  for (const o of ok) {
+    const data = { company: o.company, gyotai: o.gyotai, stores: o.stores, address: o.address, phone: o.phone, contact: o.contact,
+      owner: o.owner || defOwner, status: 'new', reDue: '', memo: o.memo, nextAction: '', nextDue: '', recDays: [], recNote: '', done: {}, logs: [], wonAt: '',
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+    const success = await write(() => store.save(store.newId(), data));
+    if (!success) break;
+    n++; btn.textContent = `取り込み中… ${n}/${ok.length}`;
+  }
+  btn.textContent = '取り込む';
+  toast(`${n} 件を取り込みました`);
+  importRows = []; $('imp-file').value = ''; $('imp-result').innerHTML = `<p>${n} 件を取り込みました。</p>`;
+};
+$('btn-import-open').onclick = () => { $('import').hidden = false; };
+$('btn-import-close').onclick = () => { $('import').hidden = true; };
+
+// ---------- settings ----------
+function renderSettings() {
+  $('i-reps').value = reps().join(', ');
+  const t = settings.targets || {};
+  $('tgt-body').innerHTML = reps().map((r, i) => `<tr><td>${esc(r)}</td>${['approach', 'appo', 'won'].map(k => `<td class="r"><input type="number" min="0" id="tg-${i}-${k}" data-rep="${esc(r)}" data-k="${k}" value="${(t[r] || {})[k] ?? ''}" aria-label="${esc(r)} ${k}"></td>`).join('')}</tr>`).join('');
+}
+$('btn-settings').onclick = () => { renderSettings(); $('settings').hidden = !$('settings').hidden; };
+$('btn-close-settings').onclick = () => { $('settings').hidden = true; };
+$('i-reps').addEventListener('change', () => {
+  const t = settings.targets; settings = { ...settings, reps: parseReps() }; renderSettings(); settings.targets = t;
+});
+const parseReps = () => [...new Set($('i-reps').value.split(/[,、]+/).map(s => s.trim()).filter(Boolean))];
+$('btn-save-settings').onclick = async () => {
+  const list = parseReps();
+  if (!list.length) { toast('営業担当を1人以上入力してください'); return; }
+  const targets = { ...(settings.targets || {}) };
+  document.querySelectorAll('#tgt-body input').forEach(inp => { const r = inp.dataset.rep; targets[r] ||= {}; const v = parseInt(inp.value, 10); targets[r][inp.dataset.k] = Number.isFinite(v) ? v : 0; });
+  const next = { ...settings, reps: list, targets };
+  if (await write(() => store.saveSettings(next))) { settings = next; toast('設定を保存しました'); $('settings').hidden = true; render(); }
+};
+
+// ---------- interactions ----------
+document.addEventListener('click', e => {
+  if (e.target.closest('a[href]')) return;
+  const qb = e.target.closest('[data-q]');
+  if (qb) { quickLog(qb.dataset.idQ, qb.dataset.q, qb.dataset.rec || ''); return; }
+  const ol = e.target.closest('[data-open-log]');
+  if (ol) { openDrawer(ol.dataset.openLog, true); return; }
+  if (e.target.id === 'dup-open') { openDrawer(e.target.dataset.id); return; }
+  if (e.target.closest('#drawer')) return;
+  const mk = e.target.closest('[data-done]');
+  if (mk) { toggleDone(mk.dataset.done, mk.dataset.date); return; }
+  const r = e.target.closest('#rep-seg [data-rep]');
+  if (r) { rep = r.dataset.rep; try { localStorage.setItem('kn_rep', rep); } catch (_) {} render(); return; }
+  const t = e.target.closest('[data-id]');
+  if (t) { openDrawer(t.dataset.id); return; }
+  const th = e.target.closest('th[data-k]');
+  if (th) { if (sortKey === th.dataset.k) sortDir = -sortDir; else { sortKey = th.dataset.k; sortDir = 1; } try { localStorage.setItem('kn_sort', `${sortKey}:${sortDir}`); } catch (_) {} render(); return; }
+  const tab = e.target.closest('[role=tab][data-view]');
+  if (tab) { view = tab.dataset.view; try { localStorage.setItem('kn_view', view); } catch (_) {} render(); }
+});
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('[data-id]')) openDrawer(e.target.dataset.id); });
+['f-q', 'f-status', 'f-gyotai', 'f-city'].forEach(id => $(id).addEventListener('input', render));
+$('f-owner').addEventListener('input', () => { rep = $('f-owner').value; try { localStorage.setItem('kn_rep', rep); } catch (_) {} render(); });
+$('f-sort').addEventListener('input', () => { const [k, d] = $('f-sort').value.split(':'); if (!k) return; sortKey = k; sortDir = +d; try { localStorage.setItem('kn_sort', `${k}:${d}`); } catch (_) {} render(); });
+$('f-pref').addEventListener('input', () => { $('f-city').value = ''; render(); });
+$('cal-prev').onclick = () => { calMonth = addMonths(calMonth, -1); render(); };
+$('cal-next').onclick = () => { calMonth = addMonths(calMonth, 1); render(); };
+$('cal-now').onclick = () => { calMonth = MONTH; render(); };
+$('rep-prev').onclick = () => { repMonth = addMonths(repMonth, -1); render(); };
+$('rep-next').onclick = () => { repMonth = addMonths(repMonth, 1); render(); };
+$('rep-now').onclick = () => { repMonth = MONTH; render(); };
+
+$('btn-csv').onclick = async () => {
+  const head = ['会社名', '店名', '店舗数', '住所', '電話番号', '先方担当者', '担当営業', 'ステータス', '最終接触', '次回アクション', '予定日', '毎月のアプローチ日', '再アプローチ予定', 'メモ', 'アプローチ回数'];
+  const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const rows = filteredList(mine(items)).map(p => [p.company, p.gyotai, p.stores, p.address, p.phone, p.contact, p.owner, ST[p.status]?.name, lastContact(p), p.nextAction, p.nextDue, fmtDays(p.recDays), p.reDue, p.memo, (p.logs || []).length].map(q).join(','));
+  try { await downloads.save({ filename: `新規開拓_${rep || '全員'}_${TODAY}.csv`, data: '\ufeff' + [head.map(q).join(','), ...rows].join('\r\n') }); }
+  catch (e) { if (e && e.code !== 'dismissed' && e.code !== 'declined') toast('CSVを保存できませんでした'); }
+};
+
+let toastT;
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 3200); }
+
+// ---------- boot ----------
+render();
+const onItems = list => { items = list; render(); if (editing && !items.find(p => p.id === editing)) closeDrawer(); };
+const onSettings = s => { settings = { ...settings, ...s }; render(); };
+const cfg = window.FIREBASE_CONFIG || {};
+if (!cfg.apiKey || /ここ/.test(cfg.apiKey)) {
+  $('login-msg').textContent = 'まだ Firebase の接続設定が入っていません。firebase-config.js に設定を書き込むと使えるようになります。';
+  $('login-form').querySelectorAll('input, button').forEach(el => el.disabled = true);
+} else {
+  const app = initializeApp(cfg);
+  const auth = getAuth(app);
+  let db;
+  try { db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) }); }
+  catch (e) { db = getFirestore(app); }
+  const authMsg = code => ({
+    'auth/invalid-credential': 'メールアドレスかパスワードが違います。',
+    'auth/wrong-password': 'メールアドレスかパスワードが違います。',
+    'auth/user-not-found': 'メールアドレスかパスワードが違います。',
+    'auth/invalid-email': 'メールアドレスの形が正しくありません。',
+    'auth/too-many-requests': '失敗が続いたため一時的にロックされました。しばらく待ってからお試しください。',
+    'auth/network-request-failed': 'インターネットにつながっていません。接続を確認してください。',
+    'auth/missing-email': 'メールアドレスを入力してください。',
+    'auth/api-key-not-valid.-please-pass-a-valid-api-key.': '接続設定（firebase-config.js）の値が正しくありません。',
+    'auth/unauthorized-domain': 'このアドレスからのログインが Firebase で許可されていません（承認済みドメインを確認）。',
+  }[code] || 'ログインできませんでした（' + code + '）。');
+  onAuthStateChanged(auth, u => {
+    if (u) {
+      $('login').hidden = true; $('who').textContent = u.email; $('btn-logout').hidden = false;
+      if (!store) { store = firestoreAdapter(db); canWrite = true; gate(); store.subscribe(onItems, onSettings); }
+    } else {
+      if (store) { store.stop(); store = null; items = []; closeDrawer(); render(); }
+      $('who').textContent = ''; $('btn-logout').hidden = true; $('login').hidden = false;
+      setStatus('', 'ログインしていません');
+    }
+  });
+  $('login-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const err = $('lg-err'); err.hidden = true; $('lg-btn').disabled = true;
+    try { await signInWithEmailAndPassword(auth, $('lg-email').value.trim(), $('lg-pass').value); $('lg-pass').value = ''; }
+    catch (x) { err.textContent = authMsg(x.code); err.hidden = false; }
+    finally { $('lg-btn').disabled = false; }
+  });
+  $('lg-reset').onclick = async () => {
+    const email = $('lg-email').value.trim(); const err = $('lg-err');
+    if (!email) { err.textContent = 'メールアドレスを入力してから押してください。'; err.hidden = false; return; }
+    try { await sendPasswordResetEmail(auth, email); err.hidden = true; $('login-msg').textContent = `${email} にパスワード再設定のメールを送りました。`; }
+    catch (x) { err.textContent = authMsg(x.code); err.hidden = false; }
+  };
+  $('btn-logout').onclick = () => signOut(auth);
+}
+})();
+</script>
+</body>
+</html>
