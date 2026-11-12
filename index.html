@@ -572,12 +572,21 @@ function buckets(list) {
 // 段階表（ファネル）：その月に各段階まで進んだ会社数。先の段階に進んだ会社は手前の段階にも数える
 const LEVEL = { '購買担当接触': 2, '担当者と話せた': 2, '購買担当に断られた': 2, 'アポ獲得': 3, '商談実施': 4, '成約': 5 };
 const FUNNEL = [['approach', 'アプローチ'], ['talked', '購買担当接触'], ['appo', 'アポ獲得'], ['meet', '商談'], ['won', '成約']];
+const STAGE_LV = { appo: 3, nego: 4, won: 5 };
+// ステータスが段階（アポ獲得・商談中・成約）に初めて到達した日を残す
+function stampStage(data, prev) {
+  data.stageAt = { ...((prev && prev.stageAt) || data.stageAt || {}) };
+  if (STAGE_LV[data.status] && !data.stageAt[data.status]) data.stageAt[data.status] = TODAY;
+}
 function metrics(list, ym) {
   const n = [0, 0, 0, 0, 0, 0]; let acts = 0;
   for (const p of list) {
     let lv = 0;
     for (const l of p.logs || []) if ((l.d || '').startsWith(ym)) { acts++; lv = Math.max(lv, LEVEL[l.result] || 1); }
     if (p.status === 'won' && (p.wonAt || '').startsWith(ym)) lv = 5;
+    // ステータスを「アポ獲得・商談中・成約」に変えた日も段階に数える
+    for (const [k, d] of Object.entries(p.stageAt || {})) if (STAGE_LV[k] && (d || '').startsWith(ym)) lv = Math.max(lv, STAGE_LV[k]);
+    if (STAGE_LV[p.status] && !(p.stageAt || {})[p.status] && (p.updatedAt || '').startsWith(ym)) lv = Math.max(lv, STAGE_LV[p.status]);
     for (let k = 1; k <= lv; k++) n[k]++;
   }
   return { acts, approach: n[1], talked: n[2], appo: n[3], meet: n[4], won: n[5] };
@@ -674,6 +683,7 @@ async function quickLog(id, result, recDate) {
   data.status = applyResultToStatus(data.status, result);
   if (REFUSED.has(result) && OPEN.has(data.status)) { data.status = 'drop'; data.reDue = addMonthsDate(TODAY, 6); }
   if (data.status === 'won' && prevStatus !== 'won') data.wonAt = TODAY;
+  stampStage(data, p);
   if (recDate) { data.done = { ...(data.done || {}) }; data.done[recDate] = new Date().toISOString(); }
   autoDone(data, log);
   let msg = `${p.company}：「${result}」を記録しました`;
@@ -916,6 +926,7 @@ $('d-save').onclick = async () => {
   };
   for (const l of draftLogs.slice((prev?.logs || []).length)) autoDone(data, l);
   if (prev?.sample) data.sample = true;
+  stampStage(data, prev);
   const id = editing || store.newId();
   $('d-save').disabled = true;
   const ok = await write(() => store.save(id, data));
