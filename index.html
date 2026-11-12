@@ -230,6 +230,10 @@ legend { font-size: 13px; font-weight: 700; padding: 0 6px }
 .pop-list button { width: 100%; text-align: left; border: 0; background: none; padding: 8px 10px; border-radius: 8px; cursor: pointer; display: block }
 .pop-list button:hover { background: var(--surface-2) }
 .pop-list .meta { display: block; font-size: 12px; color: var(--muted) }
+fieldset > .help { font-size: 12px; color: var(--muted) }
+.check { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--ink) !important; cursor: pointer }
+.check input { width: 18px; height: 18px; accent-color: var(--accent) }
+#deals li .dealbtns { display: flex; gap: 4px; align-self: flex-start; flex: none }
 .meets { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px }
 .meets li { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: flex; justify-content: space-between; gap: 8px }
 .meets li .meta { display: block; font-size: 12px; color: var(--muted); margin-bottom: 2px }
@@ -389,6 +393,10 @@ legend { font-size: 13px; font-weight: 700; padding: 0 6px }
         <div class="field" id="re-field" hidden><label for="i-re">再アプローチ予定日</label><input id="i-re" type="date">
           <div class="inline"><button type="button" class="btn small" data-re="3">3か月後</button><button type="button" class="btn small" data-re="6">半年後</button><button type="button" class="btn small" data-re="12">1年後</button></div></div>
       </div>
+      <div class="field">
+        <label class="check" for="i-legacy"><input type="checkbox" id="i-legacy"> アプリを使う前からの取引先（新規の数に入れない）</label>
+        <span class="help">チェックを入れると、このお客様のこれまでの記録や商談はレポートの新規の数に入りません。新しい業態での受注や問い合わせは、下の「新しい案件」で始めると新規として数えます。</span>
+      </div>
       <div class="grid2">
         <div class="field"><label for="i-next">次回アクション</label><input id="i-next" placeholder="例：店長に再電話"></div>
         <div class="field"><label for="i-due">予定日</label><input id="i-due" type="date"></div>
@@ -402,10 +410,20 @@ legend { font-size: 13px; font-weight: 700; padding: 0 6px }
     <fieldset id="contract-field" hidden><legend>契約・継続（成約したお客様）</legend>
       <div class="grid2">
         <div class="field"><label for="c-state">契約状況</label><select id="c-state"><option value="active">継続中</option><option value="paused">休止中</option></select></div>
-        <div class="field"><label for="c-start">契約開始日</label><input id="c-start" type="date"><span class="help">既存のお客様は実際の開始日を入れてください（その月の成約として数えます）</span></div>
+        <div class="field"><label for="c-start">契約開始日</label><input id="c-start" type="date"><span class="help">既存のお客様は分かる範囲で実際の開始日を入れてください</span></div>
       </div>
       <div class="field" id="c-reason-field"><label for="c-reason">休止の理由</label><input id="c-reason" placeholder="例：改装中、季節で発注なし、価格の見直し中"></div>
       <p class="help" style="margin:0;font-size:11px;color:var(--muted)">商談メモが60日以上追加されていないと「要確認」になり、お知らせに出ます。</p>
+    </fieldset>
+
+    <fieldset id="deal-field" hidden><legend>新しい案件（既存のお客様の新規受注・問い合わせ）</legend>
+      <span class="help">新しい業態での受注の話や問い合わせがあったら、ここで案件を始めます。始めた日から、アプローチ〜成約をもう一度「新規」として数えます。</span>
+      <div class="grid2">
+        <div class="field"><label for="dl-name">案件名</label><input id="dl-name" placeholder="例：新業態「焼鳥」出店、ランチ食材の問い合わせ"></div>
+        <div class="field"><label for="dl-start">開始日</label><input id="dl-start" type="date"></div>
+      </div>
+      <div class="actions"><button type="button" class="btn small primary" id="btn-deal">案件を始める</button></div>
+      <ul class="logs" id="deals"></ul>
     </fieldset>
 
     <fieldset><legend>アプローチ記録</legend>
@@ -474,7 +492,7 @@ const STATUSES = [
 const ST = Object.fromEntries(STATUSES.map(s => [s.id, s]));
 const OPEN = new Set(['new', 'approach', 'appo', 'nego']);
 const HOW = ['電話', '訪問', 'メール', 'DM・FAX', 'その他'];
-const RESULT = ['不在・折り返し待ち', '受付で断り', '購買担当接触', '購買担当に断られた', '資料送付', 'アポ獲得', '商談実施', '成約', 'その他'];
+const RESULT = ['不在・折り返し待ち', '受付で断り', '購買担当接触', '問い合わせあり（先方から）', '購買担当に断られた', '資料送付', 'アポ獲得', '商談実施', '成約', 'その他'];
 const REFUSED = new Set(['受付で断り', '購買担当に断られた', '断り']);
 const TALKED = new Set(['購買担当接触', '担当者と話せた']);
 const DEFAULT_REPS = ['篠原', '天野'];
@@ -627,7 +645,7 @@ function buckets(list) {
 // ---------- monthly metrics ----------
 // 段階表のルール：各段階はその会社が「初めて」その段階に達した月に1回だけ数える。
 // 先の段階に初めて達したとき、まだ数えていない手前の段階も同じ月に数える（記録漏れの補完）。
-const LEVEL = { '購買担当接触': 2, '担当者と話せた': 2, '購買担当に断られた': 2, 'アポ獲得': 3, '商談実施': 4, '成約': 5 };
+const LEVEL = { '購買担当接触': 2, '問い合わせあり（先方から）': 2, '担当者と話せた': 2, '購買担当に断られた': 2, 'アポ獲得': 3, '商談実施': 4, '成約': 5 };
 const FUNNEL = [['approach', 'アプローチ'], ['talked', '購買担当接触'], ['appo', 'アポ獲得'], ['meet', '商談'], ['won', '成約']];
 const STAGE_LV = { appo: 3, nego: 4, won: 5 };
 // ステータスが段階（アポ獲得・商談中・成約）に初めて到達した日を残す。成約は契約開始日を優先
@@ -636,24 +654,34 @@ function stampStage(data, prev) {
   if (STAGE_LV[data.status] && !data.stageAt[data.status]) data.stageAt[data.status] = (data.status === 'won' && data.cStart) || TODAY;
   if (data.status === 'won' && data.cStart && data.cStart < (data.stageAt.won || '9')) data.stageAt.won = data.cStart;
 }
-function firstReach(p) {
-  const f = ['', '', '', '', '', ''];
-  const hit = (d, lv) => { d = String(d || '').slice(0, 10); if (!d) return; for (let k = 1; k <= lv; k++) if (!f[k] || d < f[k]) f[k] = d; };
+// 区間：最初の区間（顧客そのもの）と、既存顧客で始めた「新しい案件」ごとの区間。
+// 各区間の中で、段階ごとに初めて達した日を求める。
+function reachSegments(p) {
+  const deals = (p.deals || []).filter(d => d && d.start).slice().sort((a, b) => a.start.localeCompare(b.start));
+  const segs = [{ lo: '', name: '', f: ['', '', '', '', '', ''] }, ...deals.map(d => ({ lo: d.start, name: d.name || '新しい案件', deal: d, f: ['', '', '', '', '', ''] }))];
+  const segOf = d => { for (let i = segs.length - 1; i > 0; i--) if (d >= segs[i].lo) return segs[i]; return segs[0]; };
+  const hit = (d, lv, seg) => { d = String(d || '').slice(0, 10); if (!d) return; const sg = seg || segOf(d); for (let k = 1; k <= lv; k++) if (!sg.f[k] || d < sg.f[k]) sg.f[k] = d; };
   for (const l of p.logs || []) hit(l.d, LEVEL[l.result] || 1);
   for (const m of p.meetings || []) hit(m.d, 4);
-  for (const [k, d] of Object.entries(p.stageAt || {})) if (STAGE_LV[k]) hit(d, STAGE_LV[k]);
-  if (p.wonAt) hit(p.wonAt, 5);
-  if (p.status === 'won' && p.cStart) hit(p.cStart, 5);
-  if (STAGE_LV[p.status] && !(p.stageAt || {})[p.status]) hit(p.updatedAt, STAGE_LV[p.status]);
-  return f;
+  for (const sg of segs.slice(1)) { hit(sg.lo, 1, sg); if (sg.deal.wonAt) hit(sg.deal.wonAt, 5, sg); }
+  // ステータス・契約開始日は最初の区間（顧客そのもの）だけに使う
+  for (const [k, d] of Object.entries(p.stageAt || {})) if (STAGE_LV[k]) hit(d, STAGE_LV[k], segs[0]);
+  if (p.wonAt) hit(p.wonAt, 5, segs[0]);
+  if (p.status === 'won' && p.cStart) hit(p.cStart, 5, segs[0]);
+  if (STAGE_LV[p.status] && !(p.stageAt || {})[p.status]) hit(p.updatedAt, STAGE_LV[p.status], segs[0]);
+  // アプリを使う前からの取引先は、最初の区間を新規の数に入れない
+  if (p.legacy) segs[0].f = ['', '', '', '', '', ''];
+  return segs;
 }
 const KEYS = ['', 'approach', 'talked', 'appo', 'meet', 'won'];
 function metrics(list, ym) {
   const n = [0, 0, 0, 0, 0, 0], who = []; let acts = 0;
   for (const p of list) {
     for (const l of p.logs || []) if ((l.d || '').startsWith(ym)) acts++;
-    const f = firstReach(p);
-    for (let k = 1; k <= 5; k++) if (f[k] && (ym === '' || f[k].startsWith(ym))) { n[k]++; (who[k] ||= []).push({ p, d: f[k] }); }
+    for (const sg of reachSegments(p)) {
+      const f = sg.f;
+      for (let k = 1; k <= 5; k++) if (f[k] && (ym === '' || f[k].startsWith(ym))) { n[k]++; (who[k] ||= []).push({ p, d: f[k], note: sg.name ? `案件：${sg.name}` : '' }); }
+    }
   }
   const r = { acts, who: {} }; for (let k = 1; k <= 5; k++) { r[KEYS[k]] = n[k]; r.who[KEYS[k]] = who[k] || []; }
   return r;
@@ -935,7 +963,7 @@ function renderReport() {
   // 既存顧客（成約済み）の継続状況
   const cs = mine(items).map(p => ({ p, c: contractInfo(p) })).filter(x => x.c);
   const cnt = st => cs.filter(x => x.c.state === st).length;
-  const wonM = cs.filter(x => (firstReach(x.p)[5] || '').startsWith(repMonth));
+  const wonM = metrics(cs.map(x => x.p), repMonth).who.won;
   const ent = arr => arr.map(x => ({ p: x.p, d: x.c.lastMeet, note: x.c.lastMeet ? '最終商談' : '商談メモなし' }));
   const actMonths = cs.filter(x => x.c.months !== null).map(x => x.c.months);
   const avg = actMonths.length ? (actMonths.reduce((a, b) => a + b, 0) / actMonths.length).toFixed(1) : '—';
@@ -944,7 +972,7 @@ function renderReport() {
     <p class="rep-note">数字を押すと、該当する会社の一覧が出ます。各段階は、その会社が<b>初めて</b>その段階に達した月に1回だけ数えます（同じ会社と2回目以降に商談しても数えません）。記録を飛ばして先の段階に進んだ場合は、手前の段階も同じ月に数えます。「止まっている段階」は、これまでの累計で次の段階に進んだ割合がいちばん低いところです。</p>
     <div class="panel" style="grid-column:1/-1"><h2>営業別 <span class="hint">数字 / 目標</span></h2><div class="table-wrap"><table class="compact funnel"><thead><tr><th>担当</th>${head}</tr></thead><tbody>${repRows}</tbody></table></div></div>
     <div class="panel" style="grid-column:1/-1"><h2>既存顧客の継続状況 <span class="hint">${who}</span></h2><div class="table-wrap"><table class="compact"><thead><tr><th class="r">継続中</th><th class="r">休止中</th><th class="r">要確認（60日以上商談メモなし）</th><th class="r">${m}月の新規成約</th><th class="r">平均取引期間</th></tr></thead>
-      <tbody><tr><td class="r">${popBtn(cnt('active'), '継続中のお客様', ent(cs.filter(x => x.c.state === 'active')))}</td><td class="r">${popBtn(cnt('paused'), '休止中のお客様', ent(cs.filter(x => x.c.state === 'paused')).map(e => ({ ...e, note: e.p.cReason || e.note })))}</td><td class="r">${popBtn(cs.filter(x => x.c.warn).length, '要確認のお客様（60日以上商談メモなし）', ent(cs.filter(x => x.c.warn)))}</td><td class="r">${popBtn(wonM.length, `${m}月の新規成約`, wonM.map(x => ({ p: x.p, d: firstReach(x.p)[5] })))}</td><td class="r num">${avg}${avg === '—' ? '' : 'か月'}</td></tr></tbody></table></div></div>
+      <tbody><tr><td class="r">${popBtn(cnt('active'), '継続中のお客様', ent(cs.filter(x => x.c.state === 'active')))}</td><td class="r">${popBtn(cnt('paused'), '休止中のお客様', ent(cs.filter(x => x.c.state === 'paused')).map(e => ({ ...e, note: e.p.cReason || e.note })))}</td><td class="r">${popBtn(cs.filter(x => x.c.warn).length, '要確認のお客様（60日以上商談メモなし）', ent(cs.filter(x => x.c.warn)))}</td><td class="r">${popBtn(wonM.length, `${m}月の新規成約`, wonM)}</td><td class="r num">${avg}${avg === '—' ? '' : 'か月'}</td></tr></tbody></table></div></div>
     <div class="panel" style="grid-column:1/-1"><h2>都道府県別 <span class="hint">${who}</span></h2><div class="table-wrap"><table class="compact funnel"><thead><tr><th>都道府県</th><th class="r">登録社数</th>${head}</tr></thead><tbody>${arRows || `<tr><td colspan="8" style="color:var(--muted)">顧客がまだ登録されていません。</td></tr>`}</tbody></table></div></div>`;
 }
 
@@ -993,6 +1021,23 @@ $('l-how').innerHTML = opt(HOW); $('l-result').innerHTML = opt(RESULT);
 const parseDays = s => [...new Set(String(s || '').normalize('NFKC').split(/[,、\s・]+/).map(t => /末/.test(t) ? 31 : parseInt(t.replace(/[^\d]/g, ''), 10)).filter(n => n >= 1 && n <= 31))].sort((a, b) => a - b);
 const fmtDays = a => (a || []).map(d => d === 31 ? '末' : d).join(', ');
 function updateMap() { const a = $('i-address').value.trim(); const l = $('map-link'); l.hidden = !a; if (a) l.href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(a); }
+let draftDeals = [];
+function renderDeals() {
+  $('deals').innerHTML = draftDeals.map((d, i) => ({ d, i })).sort((a, b) => b.d.start.localeCompare(a.d.start)).map(({ d, i }) =>
+    `<li><span><span class="meta">${md(d.start)} 開始${d.wonAt ? ` ・ ${md(d.wonAt)} 受注` : ''}</span>${esc(d.name || '新しい案件')}</span><span class="dealbtns">${d.wonAt ? `<button type="button" data-dealwon="${i}">受注を取り消す</button>` : `<button type="button" data-dealwon="${i}">受注した</button>`}<button type="button" data-rmdeal="${i}" aria-label="この案件を削除">×</button></span></li>`).join('')
+    || '<li style="border:0;padding:0;color:var(--muted)">まだ案件はありません</li>';
+}
+$('btn-deal').onclick = () => {
+  const name = $('dl-name').value.trim();
+  if (!name) { toast('案件名を入力してください'); $('dl-name').focus(); return; }
+  draftDeals.push({ name, start: $('dl-start').value || TODAY });
+  $('dl-name').value = ''; renderDeals(); toast('案件を追加しました。「保存」で確定します');
+};
+$('deals').addEventListener('click', e => {
+  const w = e.target.closest('[data-dealwon]'); const r = e.target.closest('[data-rmdeal]');
+  if (w) { const d = draftDeals[+w.dataset.dealwon]; d.wonAt = d.wonAt ? '' : TODAY; renderDeals(); }
+  if (r) { draftDeals.splice(+r.dataset.rmdeal, 1); renderDeals(); }
+});
 function updateContract() {
   const won = $('i-status').value === 'won'; $('contract-field').hidden = !won;
   if (won && !$('c-start').value) $('c-start').value = TODAY;
@@ -1009,7 +1054,7 @@ function checkDup() {
   return d;
 }
 $('i-address').addEventListener('input', updateMap);
-$('i-status').addEventListener('change', () => { updateRe(); updateContract(); });
+$('i-status').addEventListener('change', () => { updateRe(); updateContract(); if (!editing && $('i-status').value === 'won') $('i-legacy').checked = true; });
 $('i-company').addEventListener('blur', checkDup);
 $('i-phone').addEventListener('blur', checkDup);
 document.querySelectorAll('[data-re]').forEach(b => b.onclick = () => { $('i-re').value = addMonthsDate(TODAY, +b.dataset.re); });
@@ -1029,6 +1074,8 @@ function openDrawer(id, focusLog) {
   $('l-date').value = TODAY; $('l-how').value = '電話'; $('l-result').value = '購買担当接触'; $('l-text').value = '';
   $('c-state').value = p?.cState === 'paused' || p?.cState === 'ended' ? 'paused' : 'active'; $('c-start').value = p?.cStart || p?.wonAt || ''; $('c-reason').value = p?.cReason || '';
   draftLogs = [...(p?.logs || [])]; renderLogs(); updateMap(); updateRe(); updateContract();
+  $('i-legacy').checked = !!p?.legacy;
+  draftDeals = (p?.deals || []).map(d => ({ ...d })); $('dl-name').value = ''; $('dl-start').value = TODAY; $('deal-field').hidden = !p; renderDeals();
   $('d-del').hidden = !p; $('d-del').textContent = '削除'; $('d-del').dataset.armed = '';
   $('d-err').hidden = true; $('dup-warn').hidden = true; dupConfirmed = false;
   $('scrim').hidden = false; $('drawer').hidden = false;
@@ -1083,6 +1130,8 @@ $('d-save').onclick = async () => {
   };
   for (const l of draftLogs.slice((prev?.logs || []).length)) autoDone(data, l);
   if (prev?.sample) data.sample = true;
+  data.legacy = $('i-legacy').checked;
+  data.deals = draftDeals.map(d => ({ name: d.name, start: d.start, ...(d.wonAt ? { wonAt: d.wonAt } : {}) }));
   if (status === 'won') {
     Object.assign(data, { cState: $('c-state').value, cStart: $('c-start').value || TODAY, cReason: $('c-state').value === 'active' ? '' : $('c-reason').value.trim() });
   }
