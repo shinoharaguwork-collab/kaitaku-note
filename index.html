@@ -342,6 +342,7 @@ fieldset > .help { font-size: 12px; color: var(--muted) }
       <h3>見込み客リストの一括取り込み</h3>
       <p>Excel（.xlsx）またはCSVを選んでください。1行目の見出しから「会社名・店名・店舗数・住所・電話・担当・メモ」を自動で読み取ります。すでに登録済みの会社（電話番号か会社名が一致）は取り込みません。</p>
       <div class="inline"><input type="file" id="imp-file" accept=".xlsx,.xls,.csv,.txt"><label for="imp-owner" class="flabel">担当が空欄の行は</label><select id="imp-owner"></select></div>
+      <div class="inline"><label for="imp-kind" class="flabel">取り込むお客様は</label><select id="imp-kind"><option value="new">見込み客（ステータス「未接触」）</option><option value="existing">既存のお客様（ステータス「既存」・新規の数に入れない）</option></select></div>
       <div id="imp-result"></div>
       <div class="actions"><button class="btn primary" id="btn-import" type="button" disabled>取り込む</button><button class="btn" id="btn-import-close" type="button">閉じる</button></div>
     </section>
@@ -1188,10 +1189,11 @@ $('btn-import').onclick = async () => {
   if (!ok.length) return;
   const btn = $('btn-import'); btn.disabled = true;
   const defOwner = $('imp-owner').value;
+  const kind = $('imp-kind').value;
   let n = 0;
   for (const o of ok) {
     const data = { company: o.company, gyotai: o.gyotai, stores: o.stores, address: o.address, phone: o.phone, contact: o.contact,
-      owner: o.owner || defOwner, status: 'new', reDue: '', memo: o.memo, nextAction: '', nextDue: '', recDays: [], recNote: '', done: {}, logs: [], wonAt: '',
+      owner: o.owner || defOwner, status: kind === 'existing' ? 'existing' : 'new', ...(kind === 'existing' ? { cState: 'active', cStart: '' } : {}), reDue: '', memo: o.memo, nextAction: '', nextDue: '', recDays: [], recNote: '', done: {}, logs: [], wonAt: '',
       createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
     const success = await write(() => store.save(store.newId(), data));
     if (!success) break;
