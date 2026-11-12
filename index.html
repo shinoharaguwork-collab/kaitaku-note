@@ -645,7 +645,7 @@ function contractInfo(p) {
   const state = p.cState === 'paused' || p.cState === 'ended' ? 'paused' : 'active';
   const start = p.cStart || p.wonAt || (p.stageAt || {}).won || '';
   const lastMeet = (p.meetings || []).reduce((m, x) => (x.d || '') > m ? x.d : m, '');
-  const base = lastMeet || start;
+  const base = lastMeet; // 商談メモが1件もない会社は要確認にしない
   const idle = base ? diffDays(TODAY, base) : 0;
   const months = start ? Math.max(0, Math.floor(diffDays(TODAY, start) / 30.4)) : null;
   return { state, start, lastMeet, idle, warn: !!base && idle >= 60, months };
