@@ -140,7 +140,7 @@ td .subtle { font-size: 12px; color: var(--muted) }
 .addr .btn { flex: none; padding: 1px 8px }
 .recmarks { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px }
 .recmarks .mark { font-size: 11px; padding: 0 6px; white-space: nowrap }
-#view-list table { min-width: 1100px }
+#view-list table { min-width: 1380px }
 .list-meta { font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px }
 
 .import { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px }
@@ -217,6 +217,14 @@ legend { font-size: 13px; font-weight: 700; padding: 0 6px }
 .logs li { border-left: 3px solid var(--line); padding: 2px 0 2px 10px; font-size: 13px; display: flex; justify-content: space-between; gap: 8px }
 .logs li.appo { border-left-color: var(--s3) }
 .logs li .meta { display: block; font-size: 11px; color: var(--muted) }
+.meets { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px }
+.meets li { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: flex; justify-content: space-between; gap: 8px }
+.meets li .meta { display: block; font-size: 12px; color: var(--muted); margin-bottom: 2px }
+.meets li .body { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px }
+.meets li button { border: 0; background: none; color: var(--muted); font-size: 12px; padding: 0 4px; align-self: flex-start; white-space: nowrap }
+.meetcell { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; max-width: 200px }
+.meetcell .subtle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px }
+.pill.ended { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line) }
 .logs li button { border: 0; background: none; color: var(--muted); font-size: 12px; padding: 0 4px; align-self: flex-start }
 .err { color: var(--bad); font-size: 12px; margin: 0 }
 .warnbox { background: var(--warn-soft); color: var(--warn); border-radius: 8px; padding: 8px 10px; font-size: 13px }
@@ -300,6 +308,8 @@ legend { font-size: 13px; font-weight: 700; padding: 0 6px }
           <option value="address:1">並べ替え：住所順（エリアごと）</option>
           <option value="status:1">並べ替え：ステータス順</option>
           <option value="rec:1">並べ替え：定期アプローチ日順</option>
+          <option value="meet:1">並べ替え：商談が新しい順</option>
+          <option value="contract:1">並べ替え：契約状況（要確認が先）</option>
           <option value="nextDue:1">並べ替え：次回予定が近い順</option>
           <option value="last:1">並べ替え：最終接触が古い順</option>
           <option value="last:-1">並べ替え：最終接触が新しい順</option>
@@ -376,6 +386,18 @@ legend { font-size: 13px; font-weight: 700; padding: 0 6px }
       </div>
     </fieldset>
 
+    <fieldset id="contract-field" hidden><legend>契約・継続（成約したお客様）</legend>
+      <div class="grid2">
+        <div class="field"><label for="c-state">契約状況</label><select id="c-state"><option value="active">継続中</option><option value="paused">休止中</option><option value="ended">解約</option></select></div>
+        <div class="field"><label for="c-start">契約開始日</label><input id="c-start" type="date"><span class="help">既存のお客様は実際の開始日を入れてください（その月の成約として数えます）</span></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label for="c-last">最終取引日（最後に発注・納品があった日）</label><div class="inline"><input id="c-last" type="date"><button type="button" class="btn small" id="c-last-today">今日</button></div><span class="help">60日以上あくと「要確認」になり、お知らせに出ます</span></div>
+        <div class="field" id="c-end-field"><label for="c-end">解約日</label><input id="c-end" type="date"></div>
+      </div>
+      <div class="field" id="c-reason-field"><label for="c-reason">解約・休止の理由</label><input id="c-reason" placeholder="例：閉店、他社へ切り替え、価格"></div>
+    </fieldset>
+
     <fieldset><legend>アプローチ記録</legend>
       <div class="grid3">
         <div class="field"><label for="l-date">日付</label><input id="l-date" type="date"></div>
@@ -390,6 +412,21 @@ legend { font-size: 13px; font-weight: 700; padding: 0 6px }
   <div class="drawer-f">
     <div><button class="btn danger" id="d-del" type="button">削除</button></div>
     <div class="actions"><button class="btn" id="d-cancel" type="button">キャンセル</button><button class="btn primary" id="d-save" type="button">保存</button></div>
+  </div>
+</aside>
+<aside class="drawer" id="mdrawer" hidden role="dialog" aria-modal="true" aria-labelledby="m-title">
+  <div class="drawer-h"><h2 id="m-title">商談メモ</h2><button class="btn small" id="m-close" type="button">閉じる</button></div>
+  <div class="drawer-b">
+    <fieldset><legend>商談メモを追加</legend>
+      <div class="grid2">
+        <div class="field"><label for="m-date">商談日</label><input id="m-date" type="date"></div>
+        <div class="field"><label for="m-who">先方の出席者</label><input id="m-who" placeholder="例：社長、購買部 山田様"></div>
+      </div>
+      <div class="field"><label for="m-text">内容</label><textarea id="m-text" rows="5" placeholder="話した内容、先方の反応、宿題、次回の約束など"></textarea></div>
+      <p class="err" id="m-err" hidden></p>
+      <div class="actions"><button class="btn primary" id="m-add" type="button">追加する</button></div>
+    </fieldset>
+    <ul class="meets" id="m-list"></ul>
   </div>
 </aside>
 <div class="toast" id="toast" hidden></div>
@@ -491,7 +528,7 @@ async function write(fn) {
   }
 }
 function gate() {
-  ['btn-new', 'd-save', 'd-del', 'btn-save-settings', 'btn-log', 'btn-import-open', 'btn-settings'].forEach(id => $(id).disabled = !canWrite);
+  ['btn-new', 'd-save', 'd-del', 'btn-save-settings', 'btn-log', 'btn-import-open', 'btn-settings', 'm-add'].forEach(id => $(id).disabled = !canWrite);
   $('banner').hidden = canWrite;
   if (!canWrite) { $('banner').textContent = '閲覧専用のアカウントです。顧客の追加・編集・記録はできません。'; $('settings').hidden = true; $('import').hidden = true; }
 }
@@ -558,6 +595,8 @@ function buckets(list) {
         else if (date > TODAY && date <= end7) soon.push({ p, k: 'rec', rec: date, label: `定期 ${md(date)}`, text: p.recNote || '定期アプローチ', sort: date });
       }
     }
+    const ci = contractInfo(p);
+    if (ci && ci.warn) stale.push({ p, k: 'stale', label: `取引なし ${ci.idle}日`, text: `成約済み・最終取引 ${ci.last ? md(ci.last) : '未入力'}（継続を確認）`, sort: 'y' + (ci.last || '') });
     if (OPEN.has(p.status)) {
       const lc = lastContact(p);
       if (lc && diffDays(TODAY, lc) >= 30) stale.push({ p, k: 'stale', label: `${diffDays(TODAY, lc)}日接触なし`, text: `最終接触 ${md(lc)}`, sort: lc });
@@ -569,27 +608,51 @@ function buckets(list) {
 }
 
 // ---------- monthly metrics ----------
-// 段階表（ファネル）：その月に各段階まで進んだ会社数。先の段階に進んだ会社は手前の段階にも数える
+// 段階表のルール：各段階はその会社が「初めて」その段階に達した月に1回だけ数える。
+// 先の段階に初めて達したとき、まだ数えていない手前の段階も同じ月に数える（記録漏れの補完）。
 const LEVEL = { '購買担当接触': 2, '担当者と話せた': 2, '購買担当に断られた': 2, 'アポ獲得': 3, '商談実施': 4, '成約': 5 };
 const FUNNEL = [['approach', 'アプローチ'], ['talked', '購買担当接触'], ['appo', 'アポ獲得'], ['meet', '商談'], ['won', '成約']];
 const STAGE_LV = { appo: 3, nego: 4, won: 5 };
-// ステータスが段階（アポ獲得・商談中・成約）に初めて到達した日を残す
+// ステータスが段階（アポ獲得・商談中・成約）に初めて到達した日を残す。成約は契約開始日を優先
 function stampStage(data, prev) {
   data.stageAt = { ...((prev && prev.stageAt) || data.stageAt || {}) };
-  if (STAGE_LV[data.status] && !data.stageAt[data.status]) data.stageAt[data.status] = TODAY;
+  if (STAGE_LV[data.status] && !data.stageAt[data.status]) data.stageAt[data.status] = (data.status === 'won' && data.cStart) || TODAY;
+  if (data.status === 'won' && data.cStart && data.cStart < (data.stageAt.won || '9')) data.stageAt.won = data.cStart;
 }
+function firstReach(p) {
+  const f = ['', '', '', '', '', ''];
+  const hit = (d, lv) => { d = String(d || '').slice(0, 10); if (!d) return; for (let k = 1; k <= lv; k++) if (!f[k] || d < f[k]) f[k] = d; };
+  for (const l of p.logs || []) hit(l.d, LEVEL[l.result] || 1);
+  for (const m of p.meetings || []) hit(m.d, 4);
+  for (const [k, d] of Object.entries(p.stageAt || {})) if (STAGE_LV[k]) hit(d, STAGE_LV[k]);
+  if (p.wonAt) hit(p.wonAt, 5);
+  if (p.status === 'won' && p.cStart) hit(p.cStart, 5);
+  if (STAGE_LV[p.status] && !(p.stageAt || {})[p.status]) hit(p.updatedAt, STAGE_LV[p.status]);
+  return f;
+}
+const KEYS = ['', 'approach', 'talked', 'appo', 'meet', 'won'];
 function metrics(list, ym) {
   const n = [0, 0, 0, 0, 0, 0]; let acts = 0;
   for (const p of list) {
-    let lv = 0;
-    for (const l of p.logs || []) if ((l.d || '').startsWith(ym)) { acts++; lv = Math.max(lv, LEVEL[l.result] || 1); }
-    if (p.status === 'won' && (p.wonAt || '').startsWith(ym)) lv = 5;
-    // ステータスを「アポ獲得・商談中・成約」に変えた日も段階に数える
-    for (const [k, d] of Object.entries(p.stageAt || {})) if (STAGE_LV[k] && (d || '').startsWith(ym)) lv = Math.max(lv, STAGE_LV[k]);
-    if (STAGE_LV[p.status] && !(p.stageAt || {})[p.status] && (p.updatedAt || '').startsWith(ym)) lv = Math.max(lv, STAGE_LV[p.status]);
-    for (let k = 1; k <= lv; k++) n[k]++;
+    for (const l of p.logs || []) if ((l.d || '').startsWith(ym)) acts++;
+    const f = firstReach(p);
+    for (let k = 1; k <= 5; k++) if (f[k] && (ym === '' || f[k].startsWith(ym))) n[k]++;
   }
-  return { acts, approach: n[1], talked: n[2], appo: n[3], meet: n[4], won: n[5] };
+  const r = { acts }; for (let k = 1; k <= 5; k++) r[KEYS[k]] = n[k];
+  return r;
+}
+// 成約したお客様の継続状況
+const CSTATE = { active: '継続中', paused: '休止中', ended: '解約' };
+function contractInfo(p) {
+  if (p.status !== 'won') return null;
+  const state = p.cState || 'active';
+  const start = p.cStart || p.wonAt || (p.stageAt || {}).won || '';
+  const last = p.cLast || '';
+  const base = last || start;
+  const idle = state === 'active' && base ? diffDays(TODAY, base) : 0;
+  const end = state === 'ended' ? (p.cEnd || TODAY) : TODAY;
+  const months = start ? Math.max(0, Math.floor(diffDays(end, start) / 30.4)) : null;
+  return { state, start, last, idle, warn: state === 'active' && idle >= 60, months };
 }
 const targetFor = r => {
   const t = settings.targets || {};
@@ -646,7 +709,9 @@ function renderKpis(list) {
     tile(`${mo}月のアポ獲得`, m.appo, '社', +t.appo || 0) +
     tile(`${mo}月の成約`, m.won, '社', +t.won || 0) +
     `<div class="kpi"><span class="label">${mo}月の定期アプローチ</span><span class="val num">${doneN}<small>/ ${occ.length}</small></span><div class="bar"><i style="width:${occ.length ? doneN / occ.length * 100 : 0}%"></i></div><span class="foot">済にした件数</span></div>` +
-    `<div class="kpi"><span class="label">進行中の見込み客</span><span class="val num">${list.filter(p => OPEN.has(p.status)).length}<small>社</small></span><span class="foot">今月の購買担当接触 ${m.talked} 社</span></div>`;
+    `<div class="kpi"><span class="label">進行中の見込み客</span><span class="val num">${list.filter(p => OPEN.has(p.status)).length}<small>社</small></span><span class="foot">今月の購買担当接触 ${m.talked} 社</span></div>` +
+    (() => { const cs = list.map(contractInfo).filter(Boolean); const act = cs.filter(c => c.state === 'active').length, warn = cs.filter(c => c.warn).length;
+      return `<div class="kpi"><span class="label">継続中のお客様</span><span class="val num">${act}<small>社</small></span><span class="foot">${warn ? `要確認 ${warn} 社（60日以上取引なし）` : `休止中 ${cs.filter(c => c.state === 'paused').length} 社`}</span></div>`; })();
 }
 
 function itemHtml(x, withQuick) {
@@ -682,7 +747,7 @@ async function quickLog(id, result, recDate) {
   if (data.status === 'drop') { data.status = 'approach'; data.reDue = ''; }
   data.status = applyResultToStatus(data.status, result);
   if (REFUSED.has(result) && OPEN.has(data.status)) { data.status = 'drop'; data.reDue = addMonthsDate(TODAY, 6); }
-  if (data.status === 'won' && prevStatus !== 'won') data.wonAt = TODAY;
+  if (data.status === 'won' && prevStatus !== 'won') { data.wonAt = TODAY; data.cState ||= 'active'; data.cStart ||= TODAY; }
   stampStage(data, p);
   if (recDate) { data.done = { ...(data.done || {}) }; data.done[recDate] = new Date().toISOString(); }
   autoDone(data, log);
@@ -699,7 +764,7 @@ async function quickLog(id, result, recDate) {
 
 function renderSelects() {
   const fill = (el, opts, first) => { const cur = el.value; el.innerHTML = (first ? `<option value="">${first}</option>` : '') + opts.map(([v, n]) => `<option value="${esc(v)}">${esc(n)}</option>`).join(''); if ([...el.options].some(o => o.value === cur)) el.value = cur; };
-  fill($('f-status'), STATUSES.map(s => [s.id, s.name]), 'ステータス：すべて');
+  fill($('f-status'), [...STATUSES.map(s => [s.id, s.name]), ['c:active', '成約：継続中'], ['c:warn', '成約：要確認（60日以上取引なし）'], ['c:paused', '成約：休止中'], ['c:ended', '成約：解約']], 'ステータス：すべて');
   const gy = [...new Set(items.map(p => p.gyotai).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ja'));
   fill($('f-gyotai'), gy.map(g => [g, g]), '業態：すべて');
   $('gyotai-list').innerHTML = gy.map(g => `<option value="${esc(g)}">`).join('');
@@ -714,12 +779,13 @@ function renderSelects() {
 
 const COLS = [
   { k: 'owner', n: '担当' }, { k: 'company', n: '会社名' }, { k: 'gyotai', n: '店名' }, { k: 'stores', n: '店舗数', r: 1 }, { k: 'address', n: '住所' },
-  { k: 'phone', n: '電話番号' }, { k: 'status', n: 'ステータス' }, { k: 'last', n: '最終接触' }, { k: 'nextDue', n: '次回予定' }, { k: 'rec', n: '定期アプローチ' },
+  { k: 'phone', n: '電話番号' }, { k: 'status', n: 'ステータス' }, { k: 'last', n: '最終接触' }, { k: 'nextDue', n: '次回予定' }, { k: 'rec', n: '定期アプローチ' }, { k: 'meet', n: '商談メモ' }, { k: 'contract', n: '契約・継続' },
 ];
 function filteredList(list) {
   const q = $('f-q').value.trim().toLowerCase(), fs = $('f-status').value, fg = $('f-gyotai').value, fp = $('f-pref').value, fc = $('f-city').value;
   return list.filter(p => {
-    if (fs && p.status !== fs) return false;
+    if (fs && fs.startsWith('c:')) { const ci = contractInfo(p); if (!ci) return false; if (fs === 'c:warn' ? !ci.warn : ci.state !== fs.slice(2)) return false; }
+    else if (fs && p.status !== fs) return false;
     if (fg && p.gyotai !== fg) return false;
     if (fp || fc) { const a = area(p.address); if (fp && a.pref !== fp) return false; if (fc && a.city !== fc) return false; }
     return !q || `${p.company} ${p.gyotai || ''} ${p.address || ''} ${p.phone || ''} ${p.memo || ''} ${p.contact || ''}`.toLowerCase().includes(q);
@@ -729,7 +795,20 @@ function renderTable(list) {
   const rows = filteredList(list);
   const si = Object.fromEntries(STATUSES.map((s, i) => [s.id, i]));
   const val = (p, k) => k === 'stores' ? (+p.stores || 0) : k === 'status' ? si[p.status] ?? 9 : k === 'last' ? (lastContact(p) || '\uffff') : (p[k] || '\uffff');
-  const v2 = (p, k) => k === 'created' ? (p.createdAt || '') : k === 'rec' ? ((p.recDays && p.recDays[0]) || 99) : val(p, k);
+  const lastMeet = p => (p.meetings || []).reduce((m, x) => x.d > m ? x.d : m, '');
+  const v2 = (p, k) => k === 'created' ? (p.createdAt || '') : k === 'rec' ? ((p.recDays && p.recDays[0]) || 99)
+    : k === 'meet' ? (lastMeet(p) ? '0' + (99999999 - +lastMeet(p).replace(/-/g, '')) : '1')
+    : k === 'contract' ? (() => { const c = contractInfo(p); return c ? (c.warn ? '0' : { active: '1', paused: '2', ended: '3' }[c.state]) : '9'; })() : val(p, k);
+  const meetCell = p => {
+    const ms = p.meetings || []; const lm = ms.reduce((m, x) => (!m || x.d > m.d ? x : m), null);
+    return `<div class="meetcell"><button class="btn small" type="button" data-meet="${esc(p.id)}">商談メモ${ms.length ? `（${ms.length}）` : ' ＋'}</button>${lm ? `<span class="subtle" title="${esc(lm.text)}">${md(lm.d)} ${esc(lm.text)}</span>` : ''}</div>`;
+  };
+  const contractCell = p => {
+    const c = contractInfo(p); if (!c) return '<span class="subtle">—</span>';
+    const pill = c.warn ? `<span class="pill over">要確認</span>` : c.state === 'active' ? '<span class="pill ok">継続中</span>' : c.state === 'paused' ? '<span class="pill today">休止中</span>' : '<span class="pill ended">解約</span>';
+    const sub = c.state === 'ended' ? `${p.cEnd ? md(p.cEnd) + ' 解約' : ''}` : c.warn ? `${c.idle}日取引なし` : c.last ? `最終取引 ${md(c.last)}` : '';
+    return `${pill}${c.months !== null ? ` <span class="subtle">${c.months}か月</span>` : ''}${sub ? `<br><span class="subtle">${sub}</span>` : ''}`;
+  };
   const recCell = p => {
     const days = p.recDays || [];
     if (!days.length) return '<span class="subtle">—</span>';
@@ -747,7 +826,7 @@ function renderTable(list) {
     <td class="r num">${p.stores ?? ''}</td><td>${p.address ? `<div class="addr"><span class="subtle">${esc(p.address)}</span><a class="btn small" href="https://www.google.com/maps/search/?api=1&amp;query=${encodeURIComponent(p.address)}" target="_blank" rel="noopener" aria-label="${esc(p.company)}の住所を地図で開く">地図</a></div>` : ''}</td><td class="num">${esc(p.phone || '')}</td>
     <td><span class="st" style="--sc:var(${st.c})"><i></i>${st.name}</span>${p.status === 'drop' && p.reDue ? `<br><span class="subtle">再 ${md(p.reDue)}</span>` : ''}</td>
     <td class="num">${lc ? md(lc) : '—'}</td>
-    <td>${p.nextDue ? `<span class="pill ${over ? 'over' : p.nextDue === TODAY ? 'today' : 'soon'}">${md(p.nextDue)}</span> ` : ''}<span class="subtle">${esc(p.nextAction || '')}</span></td><td>${recCell(p)}</td></tr>`; }).join('')
+    <td>${p.nextDue ? `<span class="pill ${over ? 'over' : p.nextDue === TODAY ? 'today' : 'soon'}">${md(p.nextDue)}</span> ` : ''}<span class="subtle">${esc(p.nextAction || '')}</span></td><td>${recCell(p)}</td><td>${meetCell(p)}</td><td>${contractCell(p)}</td></tr>`; }).join('')
     || `<tr><td colspan="${COLS.length}" style="color:var(--muted);cursor:default">${items.length ? '該当する顧客はありません。' : 'まだ顧客が登録されていません。'}</td></tr>`;
 }
 
@@ -800,42 +879,83 @@ async function toggleDone(id, date) {
 }
 
 // ---------- report ----------
-function funnelCells(f, t) {
+function funnelCells(f, t, all) {
   const pct = (a, b) => Math.round(a / b * 100);
   let neck = -1, low = Infinity;
-  for (let i = 1; i < FUNNEL.length; i++) { const prev = f[FUNNEL[i - 1][0]]; if (prev) { const r = f[FUNNEL[i][0]] / prev; if (r < low) { low = r; neck = i; } } }
+  for (let i = 1; i < FUNNEL.length; i++) { const prev = all[FUNNEL[i - 1][0]]; if (prev) { const r = all[FUNNEL[i][0]] / prev; if (r < 1 && r < low) { low = r; neck = i; } } }
   const tg = { approach: t.approach, appo: t.appo, won: t.won };
-  const cells = FUNNEL.map(([k], i) => {
-    const prev = i ? f[FUNNEL[i - 1][0]] : 0;
-    const conv = i ? (prev ? `${pct(f[k], prev)}%` : '—') : '';
-    return `<td class="r ${i === neck ? 'neck' : ''}"><span class="num">${f[k]}</span><small class="subtle">社${tg[k] ? ` / ${tg[k]}` : ''}</small>${i ? `<div class="conv">${i === neck ? '▼ ' : ''}${conv}</div>` : ''}</td>`;
-  }).join('');
-  const neckTxt = neck > 0 ? `${FUNNEL[neck - 1][1]} → ${FUNNEL[neck][1]}<div class="conv">${pct(f[FUNNEL[neck][0]], f[FUNNEL[neck - 1][0]])}% しか進んでいません</div>` : '—';
+  const cells = FUNNEL.map(([k], i) => `<td class="r ${i === neck ? 'neck' : ''}"><span class="num">${f[k]}</span><small class="subtle">社${tg[k] ? ` / ${tg[k]}` : ''}</small></td>`).join('');
+  const neckTxt = neck > 0 ? `${FUNNEL[neck - 1][1]} → ${FUNNEL[neck][1]}<div class="conv">累計で ${pct(all[FUNNEL[neck][0]], all[FUNNEL[neck - 1][0]])}% しか進んでいません</div>` : '—';
   return { cells, neckTxt };
 }
 function renderReport() {
   const [y, m] = repMonth.split('-').map(Number);
   $('rep-title').textContent = `${y}年${m}月`;
-  const head = `<th class="r">アプローチ</th><th class="r">購買担当接触</th><th class="r">アポ獲得</th><th class="r">商談</th><th class="r">成約</th><th>止まっている段階</th>`;
-  // 営業別
+  const head = `<th class="r">アプローチ</th><th class="r">購買担当接触</th><th class="r">アポ獲得</th><th class="r">商談</th><th class="r">成約</th><th>止まっている段階（累計）</th>`;
   const repRows = [...reps(), ''].map(r => {
-    const f = metrics(r ? items.filter(p => p.owner === r) : items, repMonth);
-    const t = targetFor(r);
-    const { cells, neckTxt } = funnelCells(f, t);
+    const list = r ? items.filter(p => p.owner === r) : items;
+    const { cells, neckTxt } = funnelCells(metrics(list, repMonth), targetFor(r), metrics(list, ''));
     return `<tr${r ? '' : ' class="total"'}><td>${r ? esc(r) : '合計'}</td>${cells}<td>${neckTxt}</td></tr>`;
   }).join('');
-  // 都道府県別
   const g = {};
   for (const p of mine(items)) (g[area(p.address).pref || '（住所未入力）'] ||= []).push(p);
-  const arRows = Object.entries(g).map(([k, list]) => ({ k, n: list.length, f: metrics(list, repMonth) }))
+  const arRows = Object.entries(g).map(([k, list]) => ({ k, n: list.length, f: metrics(list, repMonth), all: metrics(list, '') }))
     .sort((a, b) => b.f.approach - a.f.approach || b.n - a.n)
-    .map(({ k, n, f }) => { const { cells, neckTxt } = funnelCells(f, {}); return `<tr><td>${esc(k)}</td><td class="r num">${n}</td>${cells}<td>${neckTxt}</td></tr>`; }).join('');
+    .map(({ k, n, f, all }) => { const { cells, neckTxt } = funnelCells(f, {}, all); return `<tr><td>${esc(k)}</td><td class="r num">${n}</td>${cells}<td>${neckTxt}</td></tr>`; }).join('');
+  // 既存顧客（成約済み）の継続状況
+  const cs = mine(items).map(p => ({ p, c: contractInfo(p) })).filter(x => x.c);
+  const cnt = st => cs.filter(x => x.c.state === st).length;
+  const endedM = cs.filter(x => x.c.state === 'ended' && (x.p.cEnd || '').startsWith(repMonth));
+  const wonM = cs.filter(x => (firstReach(x.p)[5] || '').startsWith(repMonth)).length;
+  const actMonths = cs.filter(x => x.c.state !== 'ended' && x.c.months !== null).map(x => x.c.months);
+  const avg = actMonths.length ? (actMonths.reduce((a, b) => a + b, 0) / actMonths.length).toFixed(1) : '—';
   const who = rep ? `（${esc(rep)}）` : '（全員）';
   $('report').innerHTML = `
-    <p class="rep-note">どの段階も、この月にその段階まで進んだ<b>会社の数</b>です（「アプローチ」は電話・メール等で一度でもアプローチした会社）。先の段階まで進んだ会社は手前の段階にも数えるので、右に行くほど同じか少なくなります。下の％は1つ手前の段階から進んだ割合で、いちばん低い段階に色を付けています。</p>
+    <p class="rep-note">各段階は、その会社が<b>初めて</b>その段階に達した月に1回だけ数えます（同じ会社と2回目以降に商談しても数えません）。記録を飛ばして先の段階に進んだ場合は、手前の段階も同じ月に数えます。「止まっている段階」は、これまでの累計で次の段階に進んだ割合がいちばん低いところです。</p>
     <div class="panel" style="grid-column:1/-1"><h2>営業別 <span class="hint">数字 / 目標</span></h2><div class="table-wrap"><table class="compact funnel"><thead><tr><th>担当</th>${head}</tr></thead><tbody>${repRows}</tbody></table></div></div>
+    <div class="panel" style="grid-column:1/-1"><h2>既存顧客の継続状況 <span class="hint">${who}</span></h2><div class="table-wrap"><table class="compact"><thead><tr><th class="r">継続中</th><th class="r">うち要確認</th><th class="r">休止中</th><th class="r">${m}月の新規成約</th><th class="r">${m}月の解約</th><th class="r">平均継続期間</th></tr></thead>
+      <tbody><tr><td class="r num">${cnt('active')}社</td><td class="r num">${cs.filter(x => x.c.warn).length}社</td><td class="r num">${cnt('paused')}社</td><td class="r num">${wonM}社</td><td class="r num">${endedM.length}社</td><td class="r num">${avg}${avg === '—' ? '' : 'か月'}</td></tr></tbody></table></div>
+      ${endedM.length ? `<p class="rep-note" style="padding:0 16px 12px">${m}月の解約：${endedM.map(x => `${esc(x.p.company)}${x.p.cReason ? `（${esc(x.p.cReason)}）` : ''}`).join('、')}</p>` : ''}</div>
     <div class="panel" style="grid-column:1/-1"><h2>都道府県別 <span class="hint">${who}</span></h2><div class="table-wrap"><table class="compact funnel"><thead><tr><th>都道府県</th><th class="r">登録社数</th>${head}</tr></thead><tbody>${arRows || `<tr><td colspan="8" style="color:var(--muted)">顧客がまだ登録されていません。</td></tr>`}</tbody></table></div></div>`;
 }
+
+// ---------- 商談メモ ----------
+let meetId = null;
+function openMeet(id) {
+  const p = items.find(x => x.id === id); if (!p) return;
+  meetId = id; $('m-title').textContent = `商談メモ：${p.company}`;
+  $('m-date').value = TODAY; $('m-who').value = ''; $('m-text').value = ''; $('m-err').hidden = true;
+  renderMeets(); $('scrim').hidden = false; $('mdrawer').hidden = false;
+  setTimeout(() => $('m-text').focus(), 30);
+}
+function closeMeet() { $('mdrawer').hidden = true; meetId = null; if ($('drawer').hidden) $('scrim').hidden = true; }
+function renderMeets() {
+  const p = items.find(x => x.id === meetId); if (!p) return;
+  const ms = (p.meetings || []).map((m, i) => ({ m, i })).sort((a, b) => (b.m.d || '').localeCompare(a.m.d || '') || b.i - a.i);
+  $('m-list').innerHTML = ms.map(({ m, i }) => `<li><div><span class="meta">${md(m.d)}${m.who ? ' ・ ' + esc(m.who) : ''}${m.by ? ' ・ 記録：' + esc(m.by) : ''}</span><div class="body">${esc(m.text)}</div></div>${canWrite ? `<button type="button" data-rmmeet="${i}">削除</button>` : ''}</li>`).join('')
+    || '<li style="border:0;padding:0;color:var(--muted)">まだ商談メモはありません</li>';
+}
+$('m-add').onclick = async () => {
+  const p = items.find(x => x.id === meetId); if (!p) return;
+  const text = $('m-text').value.trim();
+  if (!text) { $('m-err').textContent = '内容を入力してください。'; $('m-err').hidden = false; return; }
+  const data = clean(p);
+  data.meetings = [...(data.meetings || []), { d: $('m-date').value || TODAY, who: $('m-who').value.trim(), text, by: p.owner || rep || '', at: new Date().toISOString() }].slice(-300);
+  if (['new', 'approach', 'appo'].includes(data.status)) data.status = 'nego';
+  stampStage(data, p); data.updatedAt = new Date().toISOString();
+  $('m-add').disabled = true;
+  const ok = await write(() => store.save(meetId, data));
+  $('m-add').disabled = !canWrite;
+  if (ok) { $('m-text').value = ''; $('m-who').value = ''; $('m-err').hidden = true; toast('商談メモを追加しました'); }
+};
+$('m-list').addEventListener('click', async e => {
+  const b = e.target.closest('[data-rmmeet]'); if (!b) return;
+  if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'もう一度押すと削除'; return; }
+  const p = items.find(x => x.id === meetId); if (!p) return;
+  const data = clean(p); data.meetings = (data.meetings || []).filter((_, i) => i !== +b.dataset.rmmeet); data.updatedAt = new Date().toISOString();
+  if (await write(() => store.save(meetId, data))) toast('商談メモを削除しました');
+});
+$('m-close').onclick = closeMeet;
 
 // ---------- drawer ----------
 const opt = (arr, cur) => arr.map(v => `<option${v === cur ? ' selected' : ''}>${esc(v)}</option>`).join('');
@@ -844,6 +964,14 @@ $('l-how').innerHTML = opt(HOW); $('l-result').innerHTML = opt(RESULT);
 const parseDays = s => [...new Set(String(s || '').normalize('NFKC').split(/[,、\s・]+/).map(t => /末/.test(t) ? 31 : parseInt(t.replace(/[^\d]/g, ''), 10)).filter(n => n >= 1 && n <= 31))].sort((a, b) => a - b);
 const fmtDays = a => (a || []).map(d => d === 31 ? '末' : d).join(', ');
 function updateMap() { const a = $('i-address').value.trim(); const l = $('map-link'); l.hidden = !a; if (a) l.href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(a); }
+function updateContract() {
+  const won = $('i-status').value === 'won'; $('contract-field').hidden = !won;
+  if (won && !$('c-start').value) $('c-start').value = TODAY;
+  const st = $('c-state').value; $('c-end-field').hidden = st !== 'ended'; $('c-reason-field').hidden = st === 'active';
+  if (st === 'ended' && !$('c-end').value) $('c-end').value = TODAY;
+}
+$('c-state').addEventListener('change', updateContract);
+$('c-last-today').onclick = () => { $('c-last').value = TODAY; };
 function updateRe() { const drop = $('i-status').value === 'drop'; $('re-field').hidden = !drop; if (drop && !$('i-re').value) $('i-re').value = addMonthsDate(TODAY, 6); }
 function checkDup() {
   const d = findDup($('i-company').value, $('i-phone').value, editing);
@@ -854,7 +982,7 @@ function checkDup() {
   return d;
 }
 $('i-address').addEventListener('input', updateMap);
-$('i-status').addEventListener('change', updateRe);
+$('i-status').addEventListener('change', () => { updateRe(); updateContract(); });
 $('i-company').addEventListener('blur', checkDup);
 $('i-phone').addEventListener('blur', checkDup);
 document.querySelectorAll('[data-re]').forEach(b => b.onclick = () => { $('i-re').value = addMonthsDate(TODAY, +b.dataset.re); });
@@ -872,7 +1000,8 @@ function openDrawer(id, focusLog) {
   $('i-memo').value = p?.memo || ''; $('i-next').value = p?.nextAction || ''; $('i-due').value = p?.nextDue || '';
   $('i-rec').value = fmtDays(p?.recDays); $('i-recnote').value = p?.recNote || '';
   $('l-date').value = TODAY; $('l-how').value = '電話'; $('l-result').value = '購買担当接触'; $('l-text').value = '';
-  draftLogs = [...(p?.logs || [])]; renderLogs(); updateMap(); updateRe();
+  $('c-state').value = p?.cState || 'active'; $('c-start').value = p?.cStart || p?.wonAt || ''; $('c-last').value = p?.cLast || ''; $('c-end').value = p?.cEnd || ''; $('c-reason').value = p?.cReason || '';
+  draftLogs = [...(p?.logs || [])]; renderLogs(); updateMap(); updateRe(); updateContract();
   $('d-del').hidden = !p; $('d-del').textContent = '削除'; $('d-del').dataset.armed = '';
   $('d-err').hidden = true; $('dup-warn').hidden = true; dupConfirmed = false;
   $('scrim').hidden = false; $('drawer').hidden = false;
@@ -915,6 +1044,7 @@ $('d-save').onclick = async () => {
   const recDays = parseDays($('i-rec').value);
   const status = $('i-status').value;
   const data = {
+    ...(prev ? clean(prev) : {}),
     company, gyotai: $('i-gyotai').value.trim(), stores: Number.isFinite(parseInt($('i-stores').value, 10)) ? parseInt($('i-stores').value, 10) : null,
     address: $('i-address').value.trim(), phone: $('i-phone').value.trim(), contact: $('i-contact').value.trim(), owner: $('i-owner').value,
     status, reDue: status === 'drop' ? $('i-re').value : '', memo: $('i-memo').value,
@@ -926,6 +1056,9 @@ $('d-save').onclick = async () => {
   };
   for (const l of draftLogs.slice((prev?.logs || []).length)) autoDone(data, l);
   if (prev?.sample) data.sample = true;
+  if (status === 'won') {
+    Object.assign(data, { cState: $('c-state').value, cStart: $('c-start').value || TODAY, cLast: $('c-last').value, cEnd: $('c-state').value === 'ended' ? ($('c-end').value || TODAY) : '', cReason: $('c-state').value === 'active' ? '' : $('c-reason').value.trim() });
+  }
   stampStage(data, prev);
   const id = editing || store.newId();
   $('d-save').disabled = true;
@@ -939,8 +1072,8 @@ $('d-del').onclick = async () => {
   const id = editing;
   if (await write(() => store.remove(id))) { closeDrawer(); toast('削除しました'); }
 };
-$('d-close').onclick = closeDrawer; $('d-cancel').onclick = closeDrawer; $('scrim').onclick = closeDrawer;
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('drawer').hidden) closeDrawer(); });
+$('d-close').onclick = closeDrawer; $('d-cancel').onclick = closeDrawer; $('scrim').onclick = () => { if (!$('mdrawer').hidden) closeMeet(); else closeDrawer(); };
+document.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (!$('mdrawer').hidden) closeMeet(); else if (!$('drawer').hidden) closeDrawer(); });
 $('btn-new').onclick = () => openDrawer(null);
 
 // ---------- 一括取り込み ----------
@@ -1063,7 +1196,9 @@ document.addEventListener('click', e => {
   const ol = e.target.closest('[data-open-log]');
   if (ol) { openDrawer(ol.dataset.openLog, true); return; }
   if (e.target.id === 'dup-open') { openDrawer(e.target.dataset.id); return; }
-  if (e.target.closest('#drawer')) return;
+  const mt = e.target.closest('[data-meet]');
+  if (mt) { openMeet(mt.dataset.meet); return; }
+  if (e.target.closest('#drawer') || e.target.closest('#mdrawer')) return;
   const mk = e.target.closest('[data-done]');
   if (mk) { toggleDone(mk.dataset.done, mk.dataset.date); return; }
   const r = e.target.closest('#rep-seg [data-rep]');
@@ -1100,7 +1235,7 @@ function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = fals
 
 // ---------- boot ----------
 render();
-const onItems = list => { items = list; render(); if (editing && !items.find(p => p.id === editing)) closeDrawer(); };
+const onItems = list => { items = list; render(); if (meetId) renderMeets(); if (editing && !items.find(p => p.id === editing)) closeDrawer(); };
 let currentEmail = '';
 function applyRole() {
   const viewers = (settings.viewers || []).map(x => String(x).toLowerCase());
