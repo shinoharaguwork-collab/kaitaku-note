@@ -1312,7 +1312,7 @@ if (!cfg.apiKey || /ここ/.test(cfg.apiKey)) {
     'auth/missing-email': 'メールアドレスを入力してください。',
     'auth/api-key-not-valid.-please-pass-a-valid-api-key.': '接続設定（firebase-config.js）の値が正しくありません。',
     'auth/unauthorized-domain': 'このアドレスからのログインが Firebase で許可されていません（承認済みドメインを確認）。',
-  }[code] || 'ログインできませんでした（' + code + '）。');
+  }[code] || (/suspended/.test(code) ? 'データの保存先（Firebase）が Google によって一時停止されています。管理者（篠原さん）に連絡してください。' : 'ログインできませんでした（' + code + '）。'));
   onAuthStateChanged(auth, u => {
     if (u) {
       $('login').hidden = true; $('who').textContent = u.email; $('btn-logout').hidden = false;
